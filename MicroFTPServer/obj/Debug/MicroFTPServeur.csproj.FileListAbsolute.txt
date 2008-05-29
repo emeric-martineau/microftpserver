@@ -1,0 +1,15 @@
+C:\Documents and Settings\m56emar\Mes documents\Visual Studio 2008\Projects\MicroFTPServeur\MicroFTPServeur\obj\Debug\ResolveAssemblyReference.cache
+C:\Documents and Settings\m56emar\Mes documents\Visual Studio 2008\Projects\MicroFTPServeur\MicroFTPServeur\bin\Debug\MicroFTPServeur.exe
+C:\Documents and Settings\m56emar\Mes documents\Visual Studio 2008\Projects\MicroFTPServeur\MicroFTPServeur\bin\Debug\MicroFTPServeur.pdb
+C:\Documents and Settings\m56emar\Mes documents\Visual Studio 2008\Projects\MicroFTPServeur\MicroFTPServeur\obj\Debug\MicroFTPServeur.exe
+C:\Documents and Settings\m56emar\Mes documents\Visual Studio 2008\Projects\MicroFTPServeur\MicroFTPServeur\obj\Debug\MicroFTPServeur.pdb
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServeur\MicroFTPServeur\obj\Debug\MicroFTPServeur.exe
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServeur\MicroFTPServeur\obj\Debug\MicroFTPServeur.pdb
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServeur\MicroFTPServeur\bin\Debug\MicroFTPServeur.exe
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServeur\MicroFTPServeur\bin\Debug\MicroFTPServeur.pdb
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServeur\MicroFTPServeur\obj\Debug\ResolveAssemblyReference.cache
+E:\Visual Studio 2008\Projects\MicroFTPServeur\MicroFTPServeur\obj\Debug\MicroFTPServeur.exe
+E:\Visual Studio 2008\Projects\MicroFTPServeur\MicroFTPServeur\obj\Debug\MicroFTPServeur.pdb
+E:\Visual Studio 2008\Projects\MicroFTPServeur\MicroFTPServeur\obj\Debug\ResolveAssemblyReference.cache
+E:\Visual Studio 2008\Projects\MicroFTPServeur\MicroFTPServeur\bin\Debug\MicroFTPServeur.exe
+E:\Visual Studio 2008\Projects\MicroFTPServeur\MicroFTPServeur\bin\Debug\MicroFTPServeur.pdb

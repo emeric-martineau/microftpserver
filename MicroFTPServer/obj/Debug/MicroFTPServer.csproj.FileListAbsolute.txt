@@ -1,0 +1,10 @@
+C:\Documents and Settings\m56emar\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServer\bin\Debug\MicroFTPServer.exe
+C:\Documents and Settings\m56emar\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServer\bin\Debug\MicroFTPServer.pdb
+C:\Documents and Settings\m56emar\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServer\obj\Debug\ResolveAssemblyReference.cache
+C:\Documents and Settings\m56emar\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServer\obj\Debug\MicroFTPServer.exe
+C:\Documents and Settings\m56emar\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServer\obj\Debug\MicroFTPServer.pdb
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServer\obj\Debug\MicroFTPServer.exe
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServer\obj\Debug\MicroFTPServer.pdb
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServer\bin\Debug\MicroFTPServer.exe
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServer\bin\Debug\MicroFTPServer.pdb
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServer\obj\Debug\ResolveAssemblyReference.cache

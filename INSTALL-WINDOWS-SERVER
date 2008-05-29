@@ -1,0 +1,25 @@
+I  - Add service
+II - Delete service
+
+I - Add service
+---------------
+
+To install MircoFTPServer in service, copy instsrv.exe and srvany.exe in c:\windows\system32 (where
+windows is directory of install of Windows).
+Run this command :
+ instsrv.exe MicroFTPServer %SystemRoot%\System32\srvany.exe
+
+In registry under HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Services\MicroFTPServer
+create a sub-key : Parameters
+create 3 string key:
+AppParameters = "MicroFTPServer.exe"
+AppDirectory = "c:\Program Files\MicroFTPServer" where is your path to MicroFTPServer.exe
+AppParameters = ""
+
+If your configuration files is not in same directory of MicroFTPServer.exe, set AppParameters to
+"-root c:\...\...\" 
+
+II - Delete service
+-------------------
+sc delete MicroFTPServer
+
