@@ -19,6 +19,31 @@
  * with this program; if not, write to the Free Software Foundation, Inc., 59
  * Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  * 
+ * ****************************************************************************
+ * History :
+ *  - 08/07/2008 : rename all variable,
+ *                 use String.Equals(),
+ * ****************************************************************************
+ * Variables names :
+ *  xyZZZZZ :
+ *            x : l : local variable
+ *                g : global variable/public variable
+ *                p : private/protected variable
+ *                a : argument variable
+ *                
+ *            y : s : string
+ *                i : integer
+ *                f : fload
+ *                d : double
+ *                a : array
+ *                l : list<>
+ *                o : object
+ *                b : bool
+ *                c : char
+ *                l : long
+ *                
+ *           ZZZZ : name of variable
+ * ****************************************************************************
  */
 using System;
 using System.Collections.Generic;
@@ -30,32 +55,32 @@ namespace ConsoleApplication1
 {
     class ClassIniReader
     {
-        private List<String> Sections = new List<String>();
-        private List<List<String>> Keys = new List<List<String>>();
-        private List<List<String>> Values = new List<List<String>>();
-        private String _FileName;
+        private List<String> plSections = new List<String>();
+        private List<List<String>> plKeys = new List<List<String>>();
+        private List<List<String>> plValues = new List<List<String>>();
+        private String psFileName;
 
-        private bool _FileExists = false;
+        private bool pbFileExists = false;
 
         public bool FileExists
         {
             get
             {
-                return _FileExists;
+                return pbFileExists;
             }
         }
 
         /*
          * Constructor
          */
-        public ClassIniReader(String FileName)
+        public ClassIniReader(String asFileName)
         {
-            _FileName = FileName;
+            psFileName = asFileName;
 
-            if (File.Exists(FileName) == true)
+            if (File.Exists(asFileName) == true)
             {
                 ReadIniFile();
-                _FileExists = true;
+                pbFileExists = true;
             }
         }
 
@@ -64,79 +89,79 @@ namespace ConsoleApplication1
          */
         private void ReadIniFile()
         {
-            FileStream fs;
-            StreamReader sr;
-            String Ligne;
-            int index = -1;
-            String SectionName;
-            int pos;
-            String value;
-            List<String> CurrentSectionValues = new List<String>();
-            List<String> CurrentSectionKeys = new List<String>();
+            FileStream loFs;
+            StreamReader loSr;
+            String lsLigne;
+            int liIndex = -1;
+            String lsSectionName;
+            int liPos;
+            String lsValue;
+            List<String> llCurrentSectionValues = new List<String>();
+            List<String> llCurrentSectionKeys = new List<String>();
 
-            fs = File.OpenRead(_FileName);
-            sr = new StreamReader(fs, Encoding.Default);
+            loFs = File.OpenRead(psFileName);
+            loSr = new StreamReader(loFs, Encoding.Default);
 
             try
             {
-                while (sr.EndOfStream == false)
+                while (loSr.EndOfStream == false)
                 {
-                    Ligne = sr.ReadLine();
+                    lsLigne = loSr.ReadLine();
 
-                    Ligne.Trim();
+                    lsLigne.Trim();
 
-                    if (Ligne != "")
+                    if (String.IsNullOrEmpty(lsLigne) == false)
                     {
-                        if (Ligne.Substring(0, 1) == "[")
+                        if (lsLigne.Substring(0, 1).Equals("[") == true)
                         {
-                            index++;
+                            liIndex++;
 
-                            SectionName = Ligne.Substring(1, Ligne.Length - 2);
+                            lsSectionName = lsLigne.Substring(1, lsLigne.Length - 2);
 
-                            Sections.Add(SectionName.ToLower());
+                            plSections.Add(lsSectionName.ToLower());
 
-                            if (index > 0)
+                            if (liIndex > 0)
                             {
-                                Values.Add(CurrentSectionValues);
-                                Keys.Add(CurrentSectionKeys);
+                                plValues.Add(llCurrentSectionValues);
+                                plKeys.Add(llCurrentSectionKeys);
 
-                                CurrentSectionValues = new List<String>();
-                                CurrentSectionKeys = new List<String>();
+                                llCurrentSectionValues = new List<String>();
+                                llCurrentSectionKeys = new List<String>();
                             }
                         }
-                        else if (Ligne.Substring(0, 1) == ";")
+                        else if (lsLigne.Substring(0, 1).Equals(";") == true)
                         {
                             /* Commentaire, on ne fait rien */
                         }
                         else
                         {
-                            pos = Ligne.IndexOf('=');
+                            liPos = lsLigne.IndexOf('=');
 
-                            if (pos != -1)
+                            if (liPos != -1)
                             {
-                                CurrentSectionKeys.Add(Ligne.Substring(0, pos).ToLower().Trim());
+                                llCurrentSectionKeys.Add(lsLigne.Substring(0, liPos).ToLower().Trim());
 
-                                value = Ligne.Substring(pos + 1, Ligne.Length - (pos + 1)).Trim();
+                                lsValue = lsLigne.Substring(liPos + 1, lsLigne.Length - (liPos + 1)).Trim();
 
-                                if (value != "")
+                                if (String.IsNullOrEmpty(lsValue) == false)
                                 {
                                     /* supprimer " et ' */
-                                    if ((value.Substring(0, 1) == "\"") || (value.Substring(0, 1) == "'"))
+                                    if ((lsValue.Substring(0, 1).Equals("\"") == true) || (lsValue.Substring(0, 1).Equals("'") == true))
                                     {
-                                        value = value.Substring(1, value.Length - 2);
+                                        lsValue = lsValue.Substring(1, lsValue.Length - 2);
                                     }
                                 }
 
-                                CurrentSectionValues.Add(value);
+                                llCurrentSectionValues.Add(lsValue);
                             }
                         }
                     }
                 }
 
-                Values.Add(CurrentSectionValues);
-                Keys.Add(CurrentSectionKeys);
+                plValues.Add(llCurrentSectionValues);
+                plKeys.Add(llCurrentSectionKeys);
 
-                sr.Close();
+                loSr.Close();
             }
             finally
             {
@@ -146,32 +171,32 @@ namespace ConsoleApplication1
         /*
          * Retourne la valeur d'un couple Section/Key
          */
-        public String GetValue(String Section, String Key)
+        public String GetValue(String asSection, String asKey)
         {
-            int indexOfSection;
-            int indexOfKey;
-            List<String> Valeur;
-            String Resultat;
+            int liIndexOfSection;
+            int liIndexOfKey;
+            List<String> llValeur;
+            String lsResultat;
 
-            Resultat = "";
+            lsResultat = "";
 
-            indexOfSection = Sections.IndexOf(Section.ToLower());
+            liIndexOfSection = plSections.IndexOf(asSection.ToLower());
 
-            if (indexOfSection != -1)
+            if (liIndexOfSection != -1)
             {
-                Valeur = Keys[indexOfSection];
+                llValeur = plKeys[liIndexOfSection];
 
-                indexOfKey = Valeur.IndexOf(Key.ToLower());
+                liIndexOfKey = llValeur.IndexOf(asKey.ToLower());
 
-                if (indexOfKey != -1)
+                if (liIndexOfKey != -1)
                 {
-                    Valeur = Values[indexOfSection];
+                    llValeur = plValues[liIndexOfSection];
 
-                    Resultat = Valeur[indexOfKey];
+                    lsResultat = llValeur[liIndexOfKey];
                 }
             }
 
-            return Resultat;
+            return lsResultat;
         }
 
     }

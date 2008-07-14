@@ -21,14 +21,31 @@
  * 
  * ****************************************************************************
  * Attributs :
- *  - Root : root path to find config,
- *  - Port : port to listen,
- *  - IPAdress : IP adress of server,
- *  - OnLog : function to call to log,
- *  - Cancel : stop server,
  *  
  * Methode :
  *  - Start() : start server,
+ *  - Cancel() : asynchrous cancel.
+ * ****************************************************************************
+ * Variables names :
+ *  xyZZZZZ :
+ *            x : l : local variable
+ *                g : global variable/public variable
+ *                p : private/protected variable
+ *                a : argument variable
+ *                
+ *            y : s : string
+ *                i : integer
+ *                f : fload
+ *                d : double
+ *                a : array
+ *                l : list<>
+ *                o : object
+ *                b : bool
+ *                c : char
+ *                l : long
+ *                
+ *           ZZZZ : name of variable
+ *  
  * ****************************************************************************
  * FTP Command
  * [OK] USER
@@ -79,16 +96,15 @@ help user
  * [OK] NOOP
  * FEAT
  *  211-Features:
-     MDTM
+[OK]     MDTM
           -> MDTM 2.zip  -> File.GetLastWriteTime()
              213 20080526101721
              Syntax: MDTM remote-filename
              Returns the last-modified time of the given file on the remote host in the format "YYYYMMDDhhmmss": YYYY is the four-digit year, MM is the month from 01 to 12, DD is the day of the month from 01 to 31, hh is the hour from 00 to 23, mm is the minute from 00 to 59, and ss is the second from 00 to 59. 
-     REST STREAM
-     SIZE
-     UTF8 ON|OFF -> passe en mode utf8 les lignes de commande : 200 UTF8 mode enabled : 200 UTF8 mode disabled : 501 Invalid UFT8 options
-     CLNT <ckient name> - Send FTP Client Name to server. : 200 Don't care
-     MFMT bool ModifyTime
+[OK]     SIZE
+[OK]     UTF8 ON|OFF -> passe en mode utf8 les lignes de commande : 200 UTF8 mode enabled : 200 UTF8 mode disabled : 501 Invalid UFT8 options
+[OK]     CLNT <ckient name> - Send FTP Client Name to server. : 200 Don't care
+[OK]     MFMT bool ModifyTime
          mfmt 20080101121212 consolidation.exe
          213 modify=20080101121212; /consolidation.exe
          501 Not a valid date
@@ -110,34 +126,55 @@ namespace ConsoleApplication1
 {
     class ClassFTPServer
     {
-        public String RootConfigDirectory = "";
-        public int Port = 21;
-        public String IPAddress = "127.0.0.1";
-        public String WelcomeMessage = "";
-        public int MaxSessionPerUser = 2;
-        public bool Cancel = false;
-        public int MaxClient = 512;
-        public bool FullLog = false;
-        public int TimeOut = 45;
-        public int PassivePortStart;
-        public int PassivePortStop;
-
         public delegate void LogFunc(String Text);
         public LogFunc OnLog = null;
 
-        private IPAddress ipAddress;
-        private int NbClient = 0;
-        private Socket ClientIP;
-        private String[] MonthLabel = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-        private List<int> PassivePortFree = new List<int>();
-        private List<int> PassivePortUse = new List<int>();
-        private List<String> ConnectedUser = new List<String>();
-        private List<int> NbSessionPerUser = new List<int>();
-        private Object LockThread = new Object();
-        private String[] AllowIPAddress ;
-        private String[] DenyIPAddress;
+        /* root directory to find config file */
+        private String psRootConfigDirectory = "";
+        /* defaut listen port */
+        private int piPort = 21;
+        /* defaut listen ip adress */
+        private String psIPAddress = "127.0.0.1";
+        /* defaut welcom message */
+        private String psWelcomeMessage = "";
+        /* maximum sesion per user */ 
+        private int piMaxSessionPerUser = 2;
+        /* maximum client simultaneous */
+        private int piMaxClient = 512;
+        /* enable full log */
+        private bool pbFullLog = false;
+        /* default time out in second */
+        private int piTimeOut = 45;
+        /* start passive port */
+        private int piPassivePortStart;
+        /* end passive port */
+        private int piPassivePortStop;
+        /* cancel server */
+        private bool pbCancel = false;
+        /* object represent ip adress of server */
+        private IPAddress poIpAddress;
+        /* current number client */
+        private int piNbClient = 0;
+        /* current client ip */
+        private Socket poClientIP;
+        /* month letter to list command */
+        private String[] paMonthLabel = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+        /* passive port free list */
+        private List<int> plPassivePortFree = new List<int>();
+        /* passive port used list */
+        private List<int> plPassivePortUse = new List<int>();
+        /* list of user connected */
+        private List<String> plConnectedUser = new List<String>();
+        /* list of number session per user (link with plConnectedUser) */
+        private List<int> plNbSessionPerUser = new List<int>();
+        /* object to disabled interruption of thread */
+        private Object poLockThread = new Object();
+        /* array of allow ip adress */
+        private String[] paAllowIPAddress ;
+        /* array of deny ip adress */ 
+        private String[] paDenyIPAddress;
         /* Encoding for translate è à é*/ 
-        private Encoding WindowsEncoding = Encoding.GetEncoding(1252);
+        private Encoding poWindowsEncoding = Encoding.GetEncoding(1252);
 
         /*
          * Constante message
@@ -151,33 +188,51 @@ namespace ConsoleApplication1
         private const String ERROR_INVALID_PASSIVE_PORT = "** ERROR ** Is not a valide range number in PassivePort.";
         private const String ERROR_PERMISSION_DENIED = "501 Permission Denied.";
         private const String LOG_NEW_CONNECTION = "[{0}] New connection";
-
         private const String MSG_TRANSFERT_COMPLET = "226 Transfer complete.";
         private const String MSG_FILE_NOT_FOUND = "550 {0}: No such file or directory.";
 
         /*
-         * Constant
+         * Error
+         */
+        private const int SUCCESS = 0;
+        private const int CANT_OPEN_DATA_CONNECTION = 1 ;
+        private const int ACCES_DENIED = 2;
+        private const int FILE_NOT_FOUND = 3 ;
+        private const int CONNECTION_CLOSE_BY_CLIENT = 4 ;
+        private const int CONNECTION_CLOSE_SERVER_SHUTDOWN = 5 ;
+        private const int NO_ENOUGH_SPACE = 6 ;
+        private const int NOT_VALID_DATE = 7 ;
+        private const int SYNTAX_ERROR = 8 ;
+        private const int FILE_ALREADY_EXIST = 9;
+        private const int DIRECTORY_ALREADY_EXIST = 10;
+
+        /*
+         * Constante
          */
         private const String EOL = "\r\n";
         private const int BLOCK_SIZE = 512;
+        private const int WAITING_TIME = 1000;
 
         /*
-         * Constructor
+         * <summary>Constructor</summary>
+         * <remarks></remarks>
+         * <param name="asRootFile">directory contain config file</param>
+         * <returns>no return</returns>
+         * <history>
+         * - 06/07/2008 : rename variable name
+         * <history>
          */
-        public ClassFTPServer(String RootFile)
+        public ClassFTPServer(String asRootDirectory)
         {
-            this.RootConfigDirectory = AddDirSeparatorAtEnd(RootFile, Path.DirectorySeparatorChar);
+            psRootConfigDirectory = AddDirSeparatorAtEnd(asRootDirectory, Path.DirectorySeparatorChar);
         }
 
         /*
-         * Constructor
-         */
-        public ClassFTPServer()
-        {            
-        }
-
-        /*
-         * Log function
+         * <summary>Log function</summary>
+         * <remarks></remarks>
+         * <returns>no return</returns>
+         * <history>
+         * <history>
          */
         private void Log(String Text)
         {
@@ -187,100 +242,123 @@ namespace ConsoleApplication1
             }
         }
 
+
         /*
-         * Start connexion
+         * <summary>Cancel function</summary>
+         * <remarks></remarks>
+         * <returns>no return</returns>
+         * <history>
+         * - 06/07/2008 : create function
+         * <history>
+         */
+        public void Cancel()
+        {
+            pbCancel = true;
+        }
+
+        /*
+         * <summary>Start connexion</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <returns>no return</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name,
+         * - 08/07/2008 : user string.Equals(),
+         * <history>
          */
         public void Start()
         {
-            ClassIniReader GeneralIni = new ClassIniReader(RootConfigDirectory + "general.ini");
-            String tmp;
-            int i;
-            char[] PassivePortSeparateur = { '-' };
-            String[] tmpPort;
-            char[] IPSeparator = { ',' };
+            ClassIniReader loGeneralIni = new ClassIniReader(psRootConfigDirectory + "general.ini");
+            String lsTmp;
+            int liIndexPassivePort;
+            char[] laPassivePortSeparateur = { '-' };
+            String[] laTmpPort;
+            char[] laIPSeparator = { ',' };
 
-            if (GeneralIni.FileExists == true)
+            if (loGeneralIni.FileExists == true)
             {
-                tmp = GeneralIni.GetValue("main", "port");
+                lsTmp = loGeneralIni.GetValue("main", "port");
 
-                if (int.TryParse(tmp, out this.Port) == true)
+                if (int.TryParse(lsTmp, out piPort) == true)
                 {
-                    if ((this.Port >= 0) && (this.Port < 65536))
+                    if ((piPort >= 0) && (piPort < 65536))
                     {
                         try
                         {
-                            this.IPAddress = GeneralIni.GetValue("main", "IPAddress");
-                            this.ipAddress = Dns.GetHostEntry(this.IPAddress).AddressList[0];
+                            psIPAddress = loGeneralIni.GetValue("main", "IPAddress");
+                            poIpAddress = Dns.GetHostEntry(psIPAddress).AddressList[0];
 
-                            this.WelcomeMessage = GeneralIni.GetValue("main", "WelcomeMessage");
+                            psWelcomeMessage = loGeneralIni.GetValue("main", "WelcomeMessage");
 
-                            this.WelcomeMessage = this.WelcomeMessage.Replace("\\n", EOL + "220-") ;
+                            psWelcomeMessage = psWelcomeMessage.Replace("\\n", EOL + "220-") ;
 
-                            if (this.WelcomeMessage.StartsWith("220-") == false)
+                            if (psWelcomeMessage.StartsWith("220-") == false)
                             {
-                                this.WelcomeMessage = "220-" + this.WelcomeMessage;
+                                psWelcomeMessage = "220-" + psWelcomeMessage;
                             }
 
-                            if (this.WelcomeMessage.EndsWith(EOL) == false)
+                            if (psWelcomeMessage.EndsWith(EOL) == false)
                             {
-                                this.WelcomeMessage += EOL ;
+                                psWelcomeMessage += EOL ;
                             }
 
-                            this.WelcomeMessage += "220 ";
+                            psWelcomeMessage += "220 ";
 
-                            tmp = GeneralIni.GetValue("main", "MaxSessionPerUser");
+                            lsTmp = loGeneralIni.GetValue("main", "MaxSessionPerUser");
 
-                            if (int.TryParse(tmp, out this.MaxSessionPerUser) == true)
+                            if (int.TryParse(lsTmp, out piMaxSessionPerUser) == true)
                             {
-                                tmp = GeneralIni.GetValue("main", "MaxClient");
+                                lsTmp = loGeneralIni.GetValue("main", "MaxClient");
 
-                                if (int.TryParse(tmp, out this.MaxClient) == true)
+                                if (int.TryParse(lsTmp, out piMaxClient) == true)
                                 {
-                                    tmp = GeneralIni.GetValue("main", "FullLog");
+                                    lsTmp = loGeneralIni.GetValue("main", "FullLog");
 
-                                    if (tmp.ToLower() == "yes")
+                                    if (lsTmp.Equals("yes", StringComparison.OrdinalIgnoreCase) == true)
                                     {
-                                        this.FullLog = true;
+                                        pbFullLog = true;
                                     }
                                     else
                                     {
-                                        this.FullLog = false;
+                                        pbFullLog = false;
                                     }
 
-                                    tmp = GeneralIni.GetValue("main", "TimeOut");
+                                    lsTmp = loGeneralIni.GetValue("main", "TimeOut");
 
-                                    if (int.TryParse(tmp, out this.TimeOut) == true)
+                                    if (int.TryParse(lsTmp, out piTimeOut) == true)
                                     {
-                                        tmp = GeneralIni.GetValue("main", "PassivePort");
+                                        lsTmp = loGeneralIni.GetValue("main", "PassivePort");
 
-                                        tmpPort = tmp.Split(PassivePortSeparateur);
+                                        laTmpPort = lsTmp.Split(laPassivePortSeparateur);
 
-                                        if (tmpPort.Length == 2)
+                                        if (laTmpPort.Length == 2)
                                         {
-                                            if (int.TryParse(tmpPort[0], out this.PassivePortStart) == true)
+                                            if (int.TryParse(laTmpPort[0], out piPassivePortStart) == true)
                                             {
-                                                if (int.TryParse(tmpPort[1], out this.PassivePortStop) == true)
+                                                if (int.TryParse(laTmpPort[1], out piPassivePortStop) == true)
                                                 {
-                                                    for (i = this.PassivePortStart; i < this.PassivePortStop; i++)
+                                                    for (liIndexPassivePort = piPassivePortStart; liIndexPassivePort < piPassivePortStop; liIndexPassivePort++)
                                                     {
-                                                        this.PassivePortFree.Add(i);
+                                                        plPassivePortFree.Add(liIndexPassivePort);
                                                     }
 
-                                                    tmp = GeneralIni.GetValue("main", "AllowIPAddress");
+                                                    lsTmp = loGeneralIni.GetValue("main", "AllowIPAddress");
 
                                                     /* Convert to RegEx */
-                                                    tmp = tmp.Replace("?", "[0-9]");
-                                                    tmp = tmp.Replace("*", "[0-9]*");
+                                                    lsTmp = lsTmp.Replace("?", "[0-9]");
+                                                    lsTmp = lsTmp.Replace("*", "[0-9]*");
 
-                                                    this.AllowIPAddress = tmp.Split(IPSeparator);
+                                                    paAllowIPAddress = lsTmp.Split(laIPSeparator);
 
-                                                    tmp = GeneralIni.GetValue("main", "DenyIPAddress");
+                                                    lsTmp = loGeneralIni.GetValue("main", "DenyIPAddress");
 
                                                     /* Convert to RegEx */
-                                                    tmp = tmp.Replace("?", "[0-9]");
-                                                    tmp = tmp.Replace("*", "[0-9]*");
+                                                    lsTmp = lsTmp.Replace("?", "[0-9]");
+                                                    lsTmp = lsTmp.Replace("*", "[0-9]*");
 
-                                                    this.DenyIPAddress = tmp.Split(IPSeparator);
+                                                    paDenyIPAddress = lsTmp.Split(laIPSeparator);
 
                                                     Run();
                                                 }
@@ -335,99 +413,109 @@ namespace ConsoleApplication1
         }
 
         /*
-         * Run server
+         * <summary>Run server</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <returns>no return</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name
+         * - 10/07/2008 : use String.IsNullOrEmpty(),
+         *                user String.Concat()
+         * <history>
          */
         private void Run()
         {
-            IPEndPoint ep = new IPEndPoint(this.ipAddress, this.Port);
-            TcpListener tl = new TcpListener(ep);
-            Thread ClientThread;
-            int TimeOutUser = this.TimeOut;
-            System.Text.RegularExpressions.Match MatchRegEx;
-            int i;
-            bool Allow = false;
-            bool Deny = false;
-            String ClientIPAddress;
+            IPEndPoint loEp = new IPEndPoint(poIpAddress, piPort);
+            TcpListener loTl = new TcpListener(loEp);
+            Thread loClientThread;
+            int liTimeOutUser = piTimeOut;
+            System.Text.RegularExpressions.Match loMatchRegEx;
+            int liIndex;
+            bool lbAllow = false;
+            bool lbDeny = false;
+            String lsClientIPAddress;
 
-            Log("Server start at " + this.ipAddress.ToString() + " on port " + this.Port);
+            Log(String.Concat("Server start at ", poIpAddress.ToString(), " on port ", piPort.ToString()));
 
-            while (Cancel == false)
+            while (pbCancel == false)
             {
                 try
                 {
-                    tl.Start();
+                    loTl.Start();
 
-                    TcpClient client = tl.AcceptTcpClient();
+                    TcpClient client = loTl.AcceptTcpClient();
 
                     /* Check if allow ip */
-                    ClientIPAddress = ExtractIp(client.Client.RemoteEndPoint.ToString());
+                    lsClientIPAddress = ExtractIp(client.Client.RemoteEndPoint.ToString());
 
-                    for (i = 0; i < this.AllowIPAddress.Length; i++)
+                    for (liIndex = 0; liIndex < paAllowIPAddress.Length; liIndex++)
                     {
-                        System.Text.RegularExpressions.Regex ExpressionReguliere = new System.Text.RegularExpressions.Regex(this.AllowIPAddress[i]);
+                        System.Text.RegularExpressions.Regex ExpressionReguliere = new System.Text.RegularExpressions.Regex(paAllowIPAddress[liIndex]);
 
-                        if (this.AllowIPAddress[i] != "")
+                        if (String.IsNullOrEmpty(paAllowIPAddress[liIndex]) == false)
                         {
-                            MatchRegEx = ExpressionReguliere.Match(ClientIPAddress);
+                            loMatchRegEx = ExpressionReguliere.Match(lsClientIPAddress);
 
-                            if (MatchRegEx.Success == true)
+                            if (loMatchRegEx.Success == true)
                             {
-                                Allow = true;
+                                lbAllow = true;
                                 break;
                             }
                         }
                     }
 
                     /* Check if deny ip */
-                    for (i = 0; i < this.AllowIPAddress.Length; i++)
+                    for (liIndex = 0; liIndex < paAllowIPAddress.Length; liIndex++)
                     {
-                        System.Text.RegularExpressions.Regex ExpressionReguliere = new System.Text.RegularExpressions.Regex(this.DenyIPAddress[i]);
+                        System.Text.RegularExpressions.Regex ExpressionReguliere = new System.Text.RegularExpressions.Regex(paDenyIPAddress[liIndex]);
 
-                        if (this.DenyIPAddress[i] != "")
+                        if (String.IsNullOrEmpty(paDenyIPAddress[liIndex]) == false)
                         {
-                            MatchRegEx = ExpressionReguliere.Match(ClientIPAddress);
+                            loMatchRegEx = ExpressionReguliere.Match(lsClientIPAddress);
 
-                            if (MatchRegEx.Success == true)
+                            if (loMatchRegEx.Success == true)
                             {
-                                Deny = true;
+                                lbDeny = true;
                                 break;
                             }
                         }
                     }
 
-                    if ((Allow == true) && (Deny == false))
+                    if ((lbAllow == true) && (lbDeny == false))
                     {
-                        lock (this.LockThread)
+                        lock (poLockThread)
                         {
-                            this.ClientIP = client.Client;
+                            poClientIP = client.Client;
                         }
 
-                        if ((this.NbClient < this.MaxClient) || (this.MaxClient == 0))
+                        if ((piNbClient < piMaxClient) || (piMaxClient == 0))
                         {
 
-                            this.NbClient++;
+                            piNbClient++;
 							
-                            Log(String.Format(LOG_NEW_CONNECTION, ClientIP.RemoteEndPoint.ToString()));
+                            Log(String.Format(LOG_NEW_CONNECTION, poClientIP.RemoteEndPoint.ToString()));
 
-                            ClientThread = new Thread(new ThreadStart(FTPClientThread));
+                            loClientThread = new Thread(new ThreadStart(FTPClientThread));
 
-                            ClientThread.Start();
+                            loClientThread.Start();
 
                             /* Wait for start of thread */
-                            while (this.ClientIP != null)
+                            while (poClientIP != null)
                             {
                                 Thread.Sleep(500);
                             }
                         }
                         else
                         {                            
-                            SendAnswer(this.ClientIP, "421 Too many users connected.", ref TimeOutUser);
+                            SendAnswer(poClientIP, "421 Too many users connected.", ref liTimeOutUser);
                             client.Close();
                         }
                     }
                     else
                     {
-                        SendAnswer(client.Client, "421 Unauthorized.", ref TimeOutUser);
+                        SendAnswer(client.Client, "421 Unauthorized.", ref liTimeOutUser);
                         client.Close();
                     }
                 }
@@ -440,332 +528,419 @@ namespace ConsoleApplication1
         }
 
         /*
-         * Send answer
+         * <summary>Send answer</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <param name="aoClientSocket">client socket</param>
+         * <param name="aoCmd">answer to send</param>
+         * <param name="aiTimeOutUser">time out time</param>
+         * 
+         * <returns>true if function have read answer</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name,
+         *                add WAITING_TIME constante,
+         * - 10/08/2008 : use String.Empty()
+         * <history>
          */
-        private bool SendAnswer(Socket ClientSocket, String cmd, ref int TimeOutUser)
+        private bool SendAnswer(Socket aoClientSocket, String asCmd, ref int aiTimeOutUser)
         {
-            bool retour = false;
-            Byte[] MyBytes = WindowsEncoding.GetBytes(cmd + EOL ) ;
-            bool blockingState = ClientSocket.Blocking;
-            int nbBytes;
-            System.Net.Sockets.SocketError error = new System.Net.Sockets.SocketError();
-            int index = 0;
-            int size = MyBytes.Length;
+            bool lbRetour = false;
+            Byte[] laMyBytes = poWindowsEncoding.GetBytes(asCmd + EOL ) ;
+            bool lbBlockingState = aoClientSocket.Blocking;
+            int liNbBytes;
+            System.Net.Sockets.SocketError loError = new System.Net.Sockets.SocketError();
+            int liIndex = 0;
+            int liSize = laMyBytes.Length;
 
-            ClientSocket.Blocking = false;
+            aoClientSocket.Blocking = false;
 
             do
             {
-                nbBytes = ClientSocket.Send(MyBytes, index, size, SocketFlags.None, out error);
+                liNbBytes = aoClientSocket.Send(laMyBytes, liIndex, liSize, SocketFlags.None, out loError);
 
-                if (nbBytes == 0)
+                if (liNbBytes == 0)
                 {
-                    if (error != System.Net.Sockets.SocketError.WouldBlock)
+                    if (loError != System.Net.Sockets.SocketError.WouldBlock)
                     {
                         /* Connection close */
-                        retour = false;
+                        lbRetour = false;
                     }
                     else
                     {
                         /* Why ??? */
-                        Thread.Sleep(1000);
-                        TimeOutUser--;
+                        Thread.Sleep(WAITING_TIME);
+                        aiTimeOutUser--;
 
-                        if (TimeOutUser == 0)
+                        if (aiTimeOutUser == 0)
                         {
-                            retour = false;
+                            lbRetour = false;
                             break;
                         }
                     }
                 }
                 else
                 {
-                    retour = true;
+                    lbRetour = true;
                 }
 
-                index += nbBytes;
-                size = MyBytes.Length - index;
+                liIndex += liNbBytes;
+                liSize = laMyBytes.Length - liIndex;
             }
-            while (size > 0);
+            while (liSize > 0);
 
-            if (this.FullLog == true)
+            if (pbFullLog == true)
             {
-                Log("[" + ClientSocket.RemoteEndPoint.ToString() + "] " + cmd);
+                Log(String.Concat("[", aoClientSocket.RemoteEndPoint.ToString(), "] ", asCmd));
             }
 
-            ClientSocket.Blocking = blockingState;
+            aoClientSocket.Blocking = lbBlockingState;
 
-            return retour;
+            return lbRetour;
         }
 
         /*
-         * Read command form client
+         * <summary>Read command form client</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <param name="aoClientSocket">client socket</param>
+         * <param name="asLine">command to read</param>
+         * <param name="abUtf8Mode">read in UTF8</param>
+         * <param name="abReading">true if command read</param>
+         * <param name="aiTimeOutUser">time out time</param>
+         * 
+         * <returns>true if not time out</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name,
+         *                add WAITING_TIME constante,
+         * - 10/07/2008 : use String.Empty,
+         *                use String.Concat(),
+         * <history>
          */
-        private bool ReadCommand(Socket ClientSocket, ref String Line, ref bool Reading, ref int TimeOutUser)
+        private bool ReadCommand(Socket aoClientSocket, ref String asLine, bool abUtf8Mode, ref bool abReading, ref int aiTimeOutUser)
         {        
-            bool retour = true;
-            Byte[] buffer = new Byte[1];
-            bool blockingState = ClientSocket.Blocking;
-            int nbBytes;
-            System.Net.Sockets.SocketError error = new System.Net.Sockets.SocketError();
+            bool lbRetour = true;
+            Byte[] laBuffer = new Byte[1];
+            bool lbBlockingState = aoClientSocket.Blocking;
+            int liNbBytes;
+            System.Net.Sockets.SocketError loError = new System.Net.Sockets.SocketError();
+            byte[] laByteLine = {};
 
-            Line = "";
-            Reading = false;
-            ClientSocket.Blocking = false;
+            asLine = "";
+            abReading = false;
+            aoClientSocket.Blocking = false;
 
             do
             {
-                nbBytes = ClientSocket.Receive(buffer, 0, buffer.Length, SocketFlags.None, out error);
+                liNbBytes = aoClientSocket.Receive(laBuffer, 0, laBuffer.Length, SocketFlags.None, out loError);
 
-                if (nbBytes == 0)
+                if (liNbBytes == 0)
                 {
-                    if (error != System.Net.Sockets.SocketError.WouldBlock)
+                    if (loError != System.Net.Sockets.SocketError.WouldBlock)
                     {
                         /* Connection close */
-                        retour = false;
+                        lbRetour = false;
                         break;
                     }
                     else
                     {
-                        Thread.Sleep(1000);
-                        TimeOutUser--;
+                        Thread.Sleep(WAITING_TIME);
+                        aiTimeOutUser--;
 
-                        if (TimeOutUser == 0)
+                        if (aiTimeOutUser == 0)
                         {
-                            Line = "";
-                            Reading = false;
-                            retour = false;
+                            asLine = String.Empty;
+                            abReading = false;
+                            lbRetour = false;
                             break;
                         }
                     }
                 }
                 else
                 {
-                    Line += WindowsEncoding.GetString(buffer, 0, nbBytes);
+                    List<byte> li = new List<byte>(laByteLine.Length + laBuffer.Length);
+                    li.AddRange(laByteLine);
+                    li.AddRange(laBuffer);
+                    laByteLine = li.ToArray();
 
                     /* Reinit time out */
-                    TimeOutUser = this.TimeOut;
+                    aiTimeOutUser = piTimeOut;
 
-                    Reading = true;
+                    abReading = true;
                 }
 
-                if (this.Cancel == true)
+                if (pbCancel == true)
                 {
-                    Line = "";
-                    Reading = false;
+                    asLine = String.Empty;
+                    abReading = false;
+                }
+
+                if (laByteLine.Length > 0)
+                {
+                    if ((laByteLine[laByteLine.Length - 1] == '\r') || (laByteLine[laByteLine.Length - 1] == '\n'))
+                    {
+                        break ;
+                    }
                 }
             }
-            while ((Line.EndsWith("\r") != true) && (Line.EndsWith("\n") != true));
+            while (aiTimeOutUser > 0) ;
 
-            ClientSocket.Blocking = blockingState;
+            if (abUtf8Mode == true)
+            {
+                asLine += Encoding.UTF8.GetString(laByteLine, 0, laByteLine.Length);
+            }
+            else
+            {
+                asLine += poWindowsEncoding.GetString(laByteLine, 0, laByteLine.Length);
+            }
+
+            aoClientSocket.Blocking = lbBlockingState;
 
             /* Normaly, after \r we have \n. But if telnet connection, we have only \r.
              * So, next read start by \n.
              * Delete \n and \r\n
              */
-            Line = Line.Trim();
+            asLine = asLine.Trim();
 
-            if ((Reading == true) && (Line != ""))
+            if ((abReading == true) && (asLine != String.Empty))
             {
-                Log("[" + ClientSocket.LocalEndPoint.ToString() + "] " + Line);
+                Log(String.Concat("[", aoClientSocket.LocalEndPoint.ToString(), "] ", asLine));
             }
 
-            return retour;
+            return lbRetour;
         }
 
         /*
-         * Add Directory separator at end if not set
+         * <summary>Add Directory separator at end if not set</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <param name="asPathDir">string to add directory separator</param>
+         * <param name="acDirSeparator">directory separator</param>
+         * <returns>string with directory separator at and</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name
+         * - 10/07/2008 : use acDirSeparator.ToString()
+         * <history>
          */
-        private String AddDirSeparatorAtEnd(String PathDir, Char DirSeparator)
+        private String AddDirSeparatorAtEnd(String asPathDir, Char acDirSeparator)
         {
-            String Value = PathDir;
+            String lsValue = asPathDir;
 
-            if (PathDir.EndsWith("" + DirSeparator) == false)
+            if (asPathDir.EndsWith(acDirSeparator.ToString()) == false)
             {
-                Value = Value + DirSeparator;
+                lsValue = lsValue + acDirSeparator;
             }
 
-            return Value;
+            return lsValue;
         }
 
         /*
-         * Client thread
+         * <summary>Client thread</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <returns>no return</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name
+         *                add WAITING_TIME constante,
+         * - 08/07/2008 : use string.Equals(),
+         * - 10/07/2008 : use String.Empty,
+         *                use String.Concat(),
+         * <history> 
          */
         private void FTPClientThread()
         {
-            ClassIniReader Ini;
-            Socket MySocket = this.ClientIP;
+            ClassIniReader loIni;
+            Socket loMySocket = poClientIP;
             /* Current line receive */
-            String Line;
+            String lsLine;
             /* Comande e.g. USER */
-            String Cmd;
-            /* Parameter of commande */
-            String Parameter;
+            String lsCmd;
+            /* lsParameter of commande */
+            String lsParameter;
             /* If login */
-            bool Logined = false;
+            bool lbLogined = false;
             /* Login name */
-            String Login = "";
+            String lsLogin = String.Empty;
             /* Time out */
-            int TimeOutUser = this.TimeOut;
+            int liTimeOutUser = piTimeOut;
             /* Config Root */
-            String UserRoot = "";
+            String lsUserRoot = String.Empty;
             /* User can download */
-            bool Download = false;
+            bool lbDownload = false;
             /* User can upload */
-            bool Upload = false;
+            bool lbUpload = false;
             /* User can rename */
-            bool Rename = false;
+            bool lbRename = false;
             /* User can delete */
-            bool Delete = false;
+            bool lbDelete = false;
             /* User can make directory */
-            bool MakeDirectory = false;
+            bool lbMakeDirectory = false;
             /* User can remove directory */
-            bool DeleteDirectory = false;
+            bool lbDeleteDirectory = false;
             /* User can modify time of file */
-            bool ModifyTime = false;
+            bool lbModifyTime = false;
             /* Current password */
-            String Password = "";
+            String lsPassword = String.Empty;
             /* If ReadCommand have reading a command */
-            bool Reading = false;
+            bool lbReading = false;
             /* User current ftp directory */
-            String UserCurrentDirectory = "/";
+            String lsUserCurrentDirectory = "/";
             /* if passive mode enable */
-            bool PassiveMode = false;
+            bool lsPassiveMode = false;
             /* IP of client */
-            IPAddress ClientIPAddress = null;
+            IPAddress loClientIPAddress = null;
             /* Client port for data chanel */
-            int ClientPort = 0;
+            int liClientPort = 0;
             /* Socket for Active mode */
-            Socket ClientDataSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp); 
+            Socket loClientDataSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             /* Listener for pasive mode */
-            TcpListener ClientDataListener = null;
+            TcpListener loClientDataListener = null;
             /* if file transfert in binary mode */
-            bool BinaryMode = false;
+            bool lbBinaryMode = false;
             /* an error occur in SendListDirectory */
-            int error = 0;
+            int liError = 0;
             /* String represente IP:Port of client */
-            String ClientIPAddressString = "";
+            String lsClientIPAddressString = String.Empty;
             /* for seeking file */
-            long ResumeIndex = 0;
+            long llResumeIndex = 0;
             /* OS current work directory */
-            String CurrentWorkDir = "";
+            String lsCurrentWorkDir = String.Empty;
             /* stream to read binary file */
-            FileStream inFileReadBinary;
+            FileStream loInFileReadBinary;
             /* stream to read text */
-            StreamReader inFileReadText;
+            StreamReader loInFileReadText;
             /* tempory variable for make file */
-            String LocalFileName ;
+            String lsLocalFileName;
             /* file to store on server */
-            FileStream outFileWriteBinary;
+            FileStream loOutFileWriteBinary;
             /* Temporary client Socket */
-            TcpClient tmpClient;
+            TcpClient loTmpClient;
             /* file information to ensure file a good size */
-            FileInfo fi;
+            FileInfo loFi;
+            /* Result of some function */
+            String lsResult = String.Empty;
+            /* Enabled/Disabled Utf8 mode */
+            bool lbUtf8Mode = false;
+            /* File name (use in MFMT) */
+            String lsFileName = String.Empty;
+            /* Modify time of file (use in MFMT) */
+            String lsModifyTimeOfFile = String.Empty;
+            /* File to rename */
+            String lsRenameFrom = String.Empty;
+            /* true if rename file is directory */
+            bool lbIsDirectory = false ;
 
             /* free ClientIP for can start other client */
-            this.ClientIP = null;
+            poClientIP = null;
 
-            ClientIPAddressString = MySocket.RemoteEndPoint.ToString();
+            lsClientIPAddressString = loMySocket.RemoteEndPoint.ToString();
 
-            if (this.WelcomeMessage == "")
+            if (psWelcomeMessage.Equals(String.Empty) == true)
             {
-                SendAnswer(MySocket, "220 Welcome to " + Dns.GetHostName(), ref TimeOutUser);
+                SendAnswer(loMySocket, String.Concat("220 Welcome to ", Dns.GetHostName()), ref liTimeOutUser);
             }
             else
             {
-                SendAnswer(MySocket, this.WelcomeMessage, ref TimeOutUser);
+                SendAnswer(loMySocket, psWelcomeMessage, ref liTimeOutUser);
             }
 
-            while (Cancel == false)
+            while (pbCancel == false)
             {
-                Line = "";
+                lsLine = String.Empty;
 
-                if (ReadCommand(MySocket, ref Line, ref Reading, ref TimeOutUser) == true)
+                if (ReadCommand(loMySocket, ref lsLine, lbUtf8Mode, ref lbReading, ref liTimeOutUser) == true)
                 {
-                    if (Reading == true)
+                    if (lbReading == true)
                     {
-                        TimeOutUser = this.TimeOut;
+                        liTimeOutUser = piTimeOut;
                     }
 
-                    if (Line != "")
+                    if (lsLine.Equals(String.Empty) == false)
                     {
-                        Cmd = "";
-                        Parameter = "";
+                        lsCmd = String.Empty;
+                        lsParameter = String.Empty;
 
-                        ExplodeCommand(Line, ref Cmd, ref Parameter);
+                        ExplodeCommand(lsLine, ref lsCmd, ref lsParameter);
 
-                        if (Cmd != "")
+                        if (lsCmd.Equals(String.Empty) == false)
                         {
-                            TimeOutUser = this.TimeOut;
+                            liTimeOutUser = piTimeOut;
 
-                            if (Cmd == "QUIT")
+                            if (lsCmd.Equals("QUIT") == true)
                             {
-                                SendAnswer(MySocket, "221 Goodbye!", ref TimeOutUser);
-                                MySocket.Close();
+                                SendAnswer(loMySocket, "221 Goodbye!", ref liTimeOutUser);
+                                loMySocket.Close();
                                 break;
                             }
-                            else if (Cmd == "USER")
+                            else if (lsCmd.Equals("USER") == true)
                             {
-                                if (Logined == true)
+                                if (lbLogined == true)
                                 {
-                                    DisconnectLogin(Login);
+                                    DisconnectLogin(lsLogin);
                                 }
 
-                                ResumeIndex = 0;
-                                Logined = false;                               
+                                llResumeIndex = 0;
+                                lbLogined = false;
 
-                                Login = Parameter.ToLower();
+                                lsLogin = lsParameter.ToLower();
 
-                                if (Login == "anonymous")
+                                if (lsLogin.Equals("anonymous") == true)
                                 {
-                                    SendAnswer(MySocket, "331 Anonymous access allowed, send identity (e-mail name) as password.", ref TimeOutUser);
+                                    SendAnswer(loMySocket, "331 Anonymous access allowed, send identity (e-mail name) as password.", ref liTimeOutUser);
                                 }
                                 else
                                 {
-                                    SendAnswer(MySocket, "331 Password required for " + Login + ".", ref TimeOutUser);
+                                    SendAnswer(loMySocket, String.Concat("331 Password required for ", lsLogin, "."), ref liTimeOutUser);
                                 }
                             }
                             else
                             {
-                                if (Login != "")
+                                if (lsLogin.Equals(String.Empty) == false)
                                 {
-                                    if (Cmd == "PASS")
+                                    if (lsCmd.Equals("PASS") == true)
                                     {
-                                        ResumeIndex = 0;
-                                        Logined = false;
+                                        llResumeIndex = 0;
+                                        lbLogined = false;
 
-                                        Ini = new ClassIniReader(this.RootConfigDirectory + "users" + Path.DirectorySeparatorChar + Login + ".ini");
+                                        loIni = new ClassIniReader(psRootConfigDirectory + "users" + Path.DirectorySeparatorChar + lsLogin + ".ini");
 
-                                        if (Ini.FileExists == true)
+                                        if (loIni.FileExists == true)
                                         {
-                                            if (Ini.GetValue("user", "disabled").ToLower() != "yes")
+                                            if (loIni.GetValue("user", "disabled").Equals("yes", StringComparison.OrdinalIgnoreCase) == false)
                                             {
-                                                if (Login == "anonymous")
+                                                if (lsLogin == "anonymous")
                                                 {
-                                                    Logined = true;
+                                                    lbLogined = true;
 
-                                                    Log("[" + MySocket.RemoteEndPoint.ToString() + "] Anonymous password : " + Parameter);
+                                                    Log(String.Concat("[", loMySocket.RemoteEndPoint.ToString(), "] Anonymous password : ", lsParameter));
                                                 }
                                                 else
                                                 {
-                                                    if (Ini.GetValue("user", "passwordProtected").ToLower() == "yes")
+                                                    if (loIni.GetValue("user", "passwordProtected").Equals("yes", StringComparison.OrdinalIgnoreCase) == true)
                                                     {
-                                                        Password = Ini.GetValue("user", "password").ToLower();
+                                                        lsPassword = loIni.GetValue("user", "password");
 
-                                                        if (EncodePassword(Parameter) == Password)
+                                                        if (EncodePassword(lsParameter) == lsPassword)
                                                         {
-                                                            Logined = true;
+                                                            lbLogined = true;
                                                         }
                                                     }
                                                     else
                                                     {
-                                                        if (Ini.GetValue("user", "disabled").ToLower() != "yes")
+                                                        if (loIni.GetValue("user", "disabled").Equals("yes", StringComparison.OrdinalIgnoreCase) == false)
                                                         {
-                                                            Password = Ini.GetValue("user", "password");
+                                                            lsPassword = loIni.GetValue("user", "password");
 
-                                                            if (Password == Parameter)
+                                                            if (lsPassword == lsParameter)
                                                             {
-                                                                Logined = true;
+                                                                lbLogined = true;
                                                             }
                                                         }
                                                     }
@@ -773,370 +948,497 @@ namespace ConsoleApplication1
                                             }
                                         }
 
-                                        if (Logined == false)
+                                        if (lbLogined == false)
                                         {
-                                            SendAnswer(MySocket, "530 Login incorrect.", ref TimeOutUser);
+                                            SendAnswer(loMySocket, "530 lsLogin incorrect.", ref liTimeOutUser);
                                         }
                                         else
-                                        {                                         
-                                            if (NumberLogin(Login) >= this.MaxSessionPerUser)
+                                        {
+                                            if (NumberLogin(lsLogin) >= piMaxSessionPerUser)
                                             {
-                                                SendAnswer(MySocket, "530 Sorry, the maximum number of clients (" + this.MaxSessionPerUser + ") from your login are already connected.", ref TimeOutUser);
+                                                SendAnswer(loMySocket, String.Concat("530 Sorry, the maximum number of clients (", piMaxSessionPerUser, ") from your login are already connected."), ref liTimeOutUser);
                                             }
                                             else
                                             {
-                                                AddLogin(Login);
-                                                SendAnswer(MySocket, "230 User " + Login + " logged in.", ref TimeOutUser);
+                                                AddLogin(lsLogin);
+                                                SendAnswer(loMySocket, String.Concat("230 User ", lsLogin, " logged in."), ref liTimeOutUser);
 
-                                                UserRoot = Ini.GetValue("user", "Root");
-                                                CurrentWorkDir = UserRoot;
-                                                Download = Ini.GetValue("user", "Download").ToLower() == "yes";
-                                                Upload = Ini.GetValue("user", "Upload").ToLower() == "yes";
-                                                Rename = Ini.GetValue("user", "Rename").ToLower() == "yes";
-                                                Delete = Ini.GetValue("user", "Delete").ToLower() == "yes";
-                                                MakeDirectory = Ini.GetValue("user", "MakeDirectory").ToLower() == "yes";
-                                                DeleteDirectory = Ini.GetValue("user", "DeleteDirectory").ToLower() == "yes";
-                                                ModifyTime = Ini.GetValue("user", "ModifyTime").ToLower() == "yes";
+                                                lsUserRoot = loIni.GetValue("user", "Root");
+                                                lsCurrentWorkDir = lsUserRoot;
+                                                lbDownload = loIni.GetValue("user", "Download").Equals("yes", StringComparison.OrdinalIgnoreCase);
+                                                lbUpload = loIni.GetValue("user", "Upload").Equals("yes", StringComparison.OrdinalIgnoreCase);
+                                                lbRename = loIni.GetValue("user", "Rename").Equals("yes", StringComparison.OrdinalIgnoreCase);
+                                                lbDelete = loIni.GetValue("user", "Delete").Equals("yes", StringComparison.OrdinalIgnoreCase);
+                                                lbMakeDirectory = loIni.GetValue("user", "MakeDirectory").Equals("yes", StringComparison.OrdinalIgnoreCase);
+                                                lbDeleteDirectory = loIni.GetValue("user", "DeleteDirectory").Equals("yes", StringComparison.OrdinalIgnoreCase);
+                                                lbModifyTime = loIni.GetValue("user", "ModifyTime").Equals("yes", StringComparison.OrdinalIgnoreCase);
                                             }
                                         }
                                     }
-                                    else if (Cmd == "SYST")
+                                    else if (lsCmd.Equals("SYST") == true)
                                     {
-                                        ResumeIndex = 0;
-                                        SendAnswer(MySocket, "215 UNIX Type: L8", ref TimeOutUser);
+                                        llResumeIndex = 0;
+                                        SendAnswer(loMySocket, "215 UNIX Type: L8", ref liTimeOutUser);
                                     }
-                                    else if (Cmd == "MODE")
+                                    else if (lsCmd.Equals("MODE") == true)
                                     {
-                                        ResumeIndex = 0;
+                                        llResumeIndex = 0;
 
-                                        if (Parameter.ToUpper() == "S")
+                                        if (lsParameter.Equals("S", StringComparison.OrdinalIgnoreCase) == true)
                                         {
-                                            SendAnswer(MySocket, "200 Mode S ok.", ref TimeOutUser);
+                                            SendAnswer(loMySocket, "200 Mode S ok.", ref liTimeOutUser);
                                         }
                                         else
                                         {
-                                            SendAnswer(MySocket, "500 Mode " + Parameter + " not implemented.", ref TimeOutUser);
+                                            SendAnswer(loMySocket, String.Concat("500 Mode ", lsParameter, " not implemented."), ref liTimeOutUser);
                                         }
                                     }
-                                    else if ((Cmd == "PWD") || (Cmd == "XPWD"))
+                                    else if ((lsCmd.Equals("PWD") == true) || (lsCmd.Equals("XPWD") == true))
                                     {
-                                        ResumeIndex = 0;
-                                        SendAnswer(MySocket, "257 \"" + UserCurrentDirectory + "\" is current directory.", ref TimeOutUser);
+                                        llResumeIndex = 0;
+                                        SendAnswer(loMySocket, String.Concat("257 \"", lsUserCurrentDirectory, "\" is current directory."), ref liTimeOutUser);
                                     }
-                                    else if (Cmd == "PORT")
+                                    else if (lsCmd.Equals("PORT") == true)
                                     {
-                                        ResumeIndex = 0;
+                                        llResumeIndex = 0;
 
-                                        if (ClientPort != -1)
+                                        if (liClientPort != -1)
                                         {
-                                            FreePassivePort(ClientPort);
-                                            ClientPort = -1;
+                                            FreePassivePort(liClientPort);
+                                            liClientPort = -1;
                                         }
 
-                                        PassiveMode = false;
+                                        lsPassiveMode = false;
 
-                                        if (GetClientPort(Parameter, ref ClientIPAddress, ref ClientPort) == true)
+                                        if (GetClientPort(lsParameter, ref loClientIPAddress, ref liClientPort) == true)
                                         {
-                                            IPEndPoint ep = new IPEndPoint(ClientIPAddress, ClientPort);
+                                            IPEndPoint ep = new IPEndPoint(loClientIPAddress, liClientPort);
 
                                             try
                                             {
-                                                /*
-                                                if (ClientDataSocket.Connected)
-                                                {
-                                                    ClientDataSocket.Close();
-                                                }*/
-
                                                 try
                                                 {
                                                     /* Try close connection. If exception. Object is disposed. We must create it. */
-                                                    ClientDataSocket.Close();
+                                                    loClientDataSocket.Close();
                                                     /* After close, Object is disposed */
-                                                    ClientDataSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp); 
+                                                    loClientDataSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                                                 }
                                                 catch
                                                 {
-                                                    ClientDataSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp); 
+                                                    loClientDataSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                                                 }
 
 
-                                                ClientDataSocket.Connect(ep);
+                                                loClientDataSocket.Connect(ep);
 
-                                                if (ClientDataListener != null)
+                                                if (loClientDataListener != null)
                                                 {
-                                                    ClientDataListener.Stop();
-                                                    ClientDataListener = null;
+                                                    loClientDataListener.Stop();
+                                                    loClientDataListener = null;
                                                 }
 
-                                                SendAnswer(MySocket, "200 PORT command successful.", ref TimeOutUser);
+                                                SendAnswer(loMySocket, "200 PORT command successful.", ref liTimeOutUser);
                                             }
                                             catch
                                             {
-                                                SendAnswer(MySocket, "500 Invalid PORT command or already use.", ref TimeOutUser);
+                                                SendAnswer(loMySocket, "500 Invalid PORT command or already use.", ref liTimeOutUser);
                                             }
 
                                         }
                                         else
                                         {
-                                            SendAnswer(MySocket, "501 'PORT': Invalid number of parameters", ref TimeOutUser);
+                                            SendAnswer(loMySocket, "501 'PORT': Invalid number of parameters", ref liTimeOutUser);
                                         }
                                     }
-                                    else if (Cmd == "PASV")
+                                    else if (lsCmd.Equals("PASV") == true)
                                     {
-                                        ResumeIndex = 0;
+                                        llResumeIndex = 0;
 
-                                        if (ClientPort != -1)
+                                        if (liClientPort != -1)
                                         {
-                                            FreePassivePort(ClientPort);
+                                            FreePassivePort(liClientPort);
                                         }
 
-                                        if (ClientDataSocket.Connected)
+                                        if (loClientDataSocket.Connected)
                                         {
-                                            ClientDataSocket.Close();
+                                            loClientDataSocket.Close();
                                         }
 
-                                        ClientPort = GetPassivePort(ref ClientDataListener);
+                                        liClientPort = GetPassivePort(ref loClientDataListener);
 
-                                        if (ClientPort != -1)
+                                        if (liClientPort != -1)
                                         {
-                                            PassiveMode = true;
-                                            SendAnswer(MySocket, "227 Entering Passive Mode (" + this.IPAddress.Replace('.', ',') + "," + (ClientPort >> 8) + "," + (ClientPort & 0xFF) + ").", ref TimeOutUser);
+                                            lsPassiveMode = true;
+                                            SendAnswer(loMySocket, String.Concat("227 Entering Passive Mode (", psIPAddress.Replace('.', ','), ",", (liClientPort >> 8), ",", (liClientPort & 0xFF), ")."), ref liTimeOutUser);
                                         }
                                         else
                                         {
-                                            SendAnswer(MySocket, "500 PASV exception: 'No available PASV Ports'.", ref TimeOutUser);
+                                            SendAnswer(loMySocket, "500 PASV exception: 'No available PASV Ports'.", ref liTimeOutUser);
                                         }
                                     }
-                                    else if (Cmd == "TYPE")
+                                    else if (lsCmd.Equals("TYPE") == true)
                                     {
-                                        ResumeIndex = 0;
+                                        llResumeIndex = 0;
 
-                                        if (Parameter.ToUpper() == "I")
+                                        if (lsParameter.Equals("I", StringComparison.OrdinalIgnoreCase) == true)
                                         {
-                                            BinaryMode = true;
-                                            SendAnswer(MySocket, "200 Type set to I.", ref TimeOutUser);
+                                            lbBinaryMode = true;
+                                            SendAnswer(loMySocket, "200 Type set to I.", ref liTimeOutUser);
                                         }
-                                        else if (Parameter.ToUpper() == "A")
+                                        else if (lsParameter.Equals("A", StringComparison.OrdinalIgnoreCase) == true)
                                         {
-                                            BinaryMode = false;
-                                            SendAnswer(MySocket, "200 Type set to A.", ref TimeOutUser);
+                                            lbBinaryMode = false;
+                                            SendAnswer(loMySocket, "200 Type set to A.", ref liTimeOutUser);
                                         }
                                         else
                                         {
-                                            SendAnswer(MySocket, "504 TYPE must be A or I.", ref TimeOutUser);
+                                            SendAnswer(loMySocket, "504 TYPE must be A or I.", ref liTimeOutUser);
                                         }
 
                                     }
-                                    else if ((Cmd == "LIST") || (Cmd == "NLST"))
+                                    else if ((lsCmd.Equals("LIST") == true) || (lsCmd.Equals("NLST") == true))
                                     {
-                                        ResumeIndex = 0;
+                                        llResumeIndex = 0;
 
                                         /* if LIST -aL */
-                                        if (Parameter.StartsWith("-") == true)
+                                        if (lsParameter.StartsWith("-") == true)
                                         {
-                                            ExplodeCommand(Parameter, ref Cmd, ref Parameter);
+                                            ExplodeCommand(lsParameter, ref lsCmd, ref lsParameter);
                                         }
 
-                                        SendAnswer(MySocket, "150 Opening ASCII mode data connection for /bin/ls.", ref TimeOutUser);
+                                        SendAnswer(loMySocket, "150 Opening ASCII mode data connection for /bin/ls.", ref liTimeOutUser);
 
-                                        if (SendListDirectory(Parameter, ClientDataListener, ClientPort, ClientDataSocket, PassiveMode, ref error, UserRoot, UserCurrentDirectory, ref TimeOutUser, (Cmd == "NLST")) == true)
+                                        if (SendListDirectory(lsParameter, loClientDataListener, loClientDataSocket, lsPassiveMode, ref liError, lsUserRoot, lsUserCurrentDirectory, ref liTimeOutUser, (lsCmd == "NLST")) == true)
                                         {
-                                            SendAnswer(MySocket, "226 Transfer complete.", ref TimeOutUser);
+                                            SendAnswer(loMySocket, "226 Transfer complete.", ref liTimeOutUser);
                                         }
                                         else
                                         {
-                                            ShowError(MySocket, ref TimeOutUser, Parameter, error);
+                                            ShowError(loMySocket, ref liTimeOutUser, lsParameter, liError);
                                         }
                                     }
-                                    else if (Cmd == "RETR")
+                                    else if (lsCmd.Equals("RETR") == true)
                                     {
-                                        if (Download == true)
+                                        if (lbDownload == true)
                                         {
                                             try
                                             {
-                                                LocalFileName = FTPPathToOSPath(UserRoot, UserCurrentDirectory, Parameter);
+                                                lsLocalFileName = FTPPathToOSPath(lsUserRoot, lsUserCurrentDirectory, lsParameter);
 
-                                                if (File.Exists(LocalFileName) == true)
+                                                if (File.Exists(lsLocalFileName) == true)
                                                 {
-                                                    SendAnswer(MySocket, "150 Opening " + (BinaryMode == true ? "binary" : "ASCII") + " mode data connection for " + Parameter + ".", ref TimeOutUser);
+                                                    SendAnswer(loMySocket, String.Concat("150 Opening ", (lbBinaryMode == true ? "binary" : "ASCII"), " mode data connection for ", lsParameter, "."), ref liTimeOutUser);
 
-                                                    if (BinaryMode == true)
+                                                    if (lbBinaryMode == true)
                                                     {
-                                                        inFileReadBinary = new FileStream(LocalFileName, FileMode.Open, FileAccess.Read);
+                                                        loInFileReadBinary = new FileStream(lsLocalFileName, FileMode.Open, FileAccess.Read);
 
-                                                        if (SendBinaryFile(inFileReadBinary, ClientDataListener, ClientPort, ClientDataSocket, PassiveMode, ref error, ResumeIndex, ref TimeOutUser) == true)
+                                                        if (SendBinaryFile(loInFileReadBinary, loClientDataListener, loClientDataSocket, lsPassiveMode, ref liError, llResumeIndex, ref liTimeOutUser) == true)
                                                         {
-                                                            SendAnswer(MySocket, MSG_TRANSFERT_COMPLET, ref TimeOutUser);
+                                                            SendAnswer(loMySocket, MSG_TRANSFERT_COMPLET, ref liTimeOutUser);
                                                         }
                                                         else
                                                         {
-                                                            ShowError(MySocket, ref TimeOutUser, Parameter, error);
+                                                            ShowError(loMySocket, ref liTimeOutUser, lsParameter, liError);
                                                         }
 
-                                                        inFileReadBinary.Close();
+                                                        loInFileReadBinary.Close();
                                                     }
                                                     else
                                                     {
-                                                        inFileReadText = new StreamReader(LocalFileName);
+                                                        loInFileReadText = new StreamReader(lsLocalFileName);
 
-                                                        if (SendTextFile(inFileReadText, ClientDataListener, ClientPort, ClientDataSocket, PassiveMode, ref error, ref TimeOutUser) == true)
+                                                        if (SendTextFile(loInFileReadText, loClientDataListener, loClientDataSocket, lsPassiveMode, ref liError, ref liTimeOutUser) == true)
                                                         {
-                                                            SendAnswer(MySocket, MSG_TRANSFERT_COMPLET, ref TimeOutUser);
+                                                            SendAnswer(loMySocket, MSG_TRANSFERT_COMPLET, ref liTimeOutUser);
                                                         }
                                                         else
                                                         {
-                                                            ShowError(MySocket, ref TimeOutUser, Parameter, error);
+                                                            ShowError(loMySocket, ref liTimeOutUser, lsParameter, liError);
                                                         }
 
-                                                        inFileReadText.Close();
+                                                        loInFileReadText.Close();
                                                     }
                                                 }
                                                 else
                                                 {
-                                                    SendAnswer(MySocket, String.Format(MSG_FILE_NOT_FOUND, Parameter), ref TimeOutUser);
+                                                    SendAnswer(loMySocket, String.Format(MSG_FILE_NOT_FOUND, lsParameter), ref liTimeOutUser);
                                                 }
 
                                             }
                                             catch
                                             {
-                                                if (PassiveMode == true)
+                                                if (lsPassiveMode == true)
                                                 {
-                                                    tmpClient = ClientDataListener.AcceptTcpClient();
-                                                    tmpClient.Client.Close();
+                                                    loTmpClient = loClientDataListener.AcceptTcpClient();
+                                                    loTmpClient.Client.Close();
                                                 }
                                                 else
                                                 {
-                                                    ClientDataSocket.Close();
+                                                    loClientDataSocket.Close();
                                                 }
 
-                                                SendAnswer(MySocket, ERROR_PERMISSION_DENIED, ref TimeOutUser);
+                                                SendAnswer(loMySocket, ERROR_PERMISSION_DENIED, ref liTimeOutUser);
                                             }
                                         }
                                         else
                                         {
-                                            SendAnswer(MySocket, "500 Cannot RETR.", ref TimeOutUser);
+                                            SendAnswer(loMySocket, "500 Cannot RETR.", ref liTimeOutUser);
                                         }
 
-                                        ResumeIndex = 0;
+                                        llResumeIndex = 0;
                                     }
-                                    else if (Cmd == "NOOP")
+                                    else if (lsCmd.Equals("NOOP") == true)
                                     {
-                                        ResumeIndex = 0;
+                                        llResumeIndex = 0;
 
-                                        SendAnswer(MySocket, "200 NOOP command successful.", ref TimeOutUser);
+                                        SendAnswer(loMySocket, "200 NOOP command successful.", ref liTimeOutUser);
                                     }
-                                    else if (Cmd == "REST")
+                                    else if (lsCmd.Equals("REST") == true)
                                     {
-                                        ResumeIndex = 0;
+                                        llResumeIndex = 0;
 
-                                        if (long.TryParse(Parameter, out ResumeIndex) == true)
+                                        if (long.TryParse(lsParameter, out llResumeIndex) == true)
                                         {
-                                            SendAnswer(MySocket, "350 Restart transfert at " + ResumeIndex + ".", ref TimeOutUser);
+                                            SendAnswer(loMySocket, String.Concat("350 Restart transfert at ", llResumeIndex, "."), ref liTimeOutUser);
                                         }
                                         else
                                         {
-                                            SendAnswer(MySocket, "501 Syntax error in parameter: '" + Parameter + "' is not a valid integer value.", ref TimeOutUser);
+                                            SendAnswer(loMySocket, String.Concat("501 Syntax liError in parameter: '", lsParameter, "' is not a valid integer value."), ref liTimeOutUser);
                                         }
                                     }
-                                    else if ((Cmd == "CWD") || (Cmd == "CDUP") || (Cmd == "XCUP"))
+                                    else if ((lsCmd.Equals("CWD") == true) || (lsCmd.Equals("CDUP") == true) || (lsCmd.Equals("XCUP") == true))
                                     {
-                                        ResumeIndex = 0;
+                                        llResumeIndex = 0;
 
-                                        if ((Cmd == "CDUP") || (Cmd == "XCUP"))
+                                        if ((lsCmd.Equals("CDUP") == true) || (lsCmd.Equals("XCUP") == true))
                                         {
-                                            Parameter = AddDirSeparatorAtEnd(UserCurrentDirectory, '/') + "..";
+                                            lsParameter = AddDirSeparatorAtEnd(lsUserCurrentDirectory, '/') + "..";
                                         }
 
-                                        switch (ChangeDirectory(UserRoot, Parameter, ref UserCurrentDirectory, ref CurrentWorkDir))
+                                        switch (ChangeDirectory(lsUserRoot, lsParameter, ref lsUserCurrentDirectory, ref lsCurrentWorkDir))
                                         {
                                             case 0:
-                                                SendAnswer(MySocket, "250 CWD command successful.", ref TimeOutUser);
+                                                SendAnswer(loMySocket, "250 CWD command successful.", ref liTimeOutUser);
                                                 break;
                                             case 1:
-                                                SendAnswer(MySocket, "550 Permission Denied.", ref TimeOutUser);
+                                                SendAnswer(loMySocket, "550 Permission Denied.", ref liTimeOutUser);
                                                 break;
                                             default:
-                                                SendAnswer(MySocket, "550 " + Parameter + ": No such file or directory.", ref TimeOutUser);
+                                                SendAnswer(loMySocket, String.Concat("550 ", lsParameter, ": No such file or directory."), ref liTimeOutUser);
                                                 break;
                                         }
                                     }
-                                    else if ((Cmd == "STOR") || (Cmd == "APPE"))
+                                    else if ((lsCmd.Equals("STOR") == true) || (lsCmd.Equals("APPE") == true))
                                     {
-                                        if (Upload == true)
+                                        if (lbUpload == true)
                                         {
                                             try
                                             {
-                                                LocalFileName = FTPPathToOSPath(UserRoot, UserCurrentDirectory, Parameter);
+                                                lsLocalFileName = FTPPathToOSPath(lsUserRoot, lsUserCurrentDirectory, lsParameter);
 
-                                                SendAnswer(MySocket, "150 Opening " + (BinaryMode == true ? "binary" : "ASCII") + " mode data connection for " + Parameter + ".", ref TimeOutUser);
+                                                SendAnswer(loMySocket, String.Concat("150 Opening ", (lbBinaryMode == true ? "binary" : "ASCII"), " mode data connection for ", lsParameter, "."), ref liTimeOutUser);
 
-                                                if (File.Exists(LocalFileName) == true)
+                                                if (File.Exists(lsLocalFileName) == true)
                                                 {
-                                                    if (Cmd == "STOR")
+                                                    if (lsCmd.Equals("STOR") == true)
                                                     {
-                                                        outFileWriteBinary = new FileStream(LocalFileName, FileMode.Open, FileAccess.Write);
+                                                        loOutFileWriteBinary = new FileStream(lsLocalFileName, FileMode.Open, FileAccess.Write);
 
                                                         /* trunc file if necessary */
-                                                        fi = new FileInfo(LocalFileName);
+                                                        loFi = new FileInfo(lsLocalFileName);
 
-                                                        if (fi.Length > ResumeIndex)
+                                                        if (loFi.Length > llResumeIndex)
                                                         {
-                                                            outFileWriteBinary.SetLength(ResumeIndex);
+                                                            loOutFileWriteBinary.SetLength(llResumeIndex);
                                                         }
                                                     }
                                                     else
                                                     {
-                                                        outFileWriteBinary = new FileStream(LocalFileName, FileMode.Append, FileAccess.Write);
+                                                        loOutFileWriteBinary = new FileStream(lsLocalFileName, FileMode.Append, FileAccess.Write);
                                                     }
                                                 }
                                                 else
                                                 {
-                                                    outFileWriteBinary = new FileStream(LocalFileName, FileMode.Create, FileAccess.Write);
+                                                    loOutFileWriteBinary = new FileStream(lsLocalFileName, FileMode.Create, FileAccess.Write);
                                                 }
 
-                                                if (GetFile(outFileWriteBinary, ClientDataListener, ClientPort, ClientDataSocket, PassiveMode, ref error, ResumeIndex, BinaryMode, ref TimeOutUser) == true)
+                                                if (GetFile(loOutFileWriteBinary, loClientDataListener, loClientDataSocket, lsPassiveMode, ref liError, llResumeIndex, lbBinaryMode, ref liTimeOutUser) == true)
                                                 {
-                                                    SendAnswer(MySocket, MSG_TRANSFERT_COMPLET, ref TimeOutUser);
+                                                    SendAnswer(loMySocket, MSG_TRANSFERT_COMPLET, ref liTimeOutUser);
                                                 }
                                                 else
                                                 {
-                                                    ShowError(MySocket, ref TimeOutUser, Parameter, error);
+                                                    ShowError(loMySocket, ref liTimeOutUser, lsParameter, liError);
                                                 }
 
-                                                outFileWriteBinary.Close();
+                                                loOutFileWriteBinary.Close();
                                             }
                                             catch
                                             {
-                                                if (PassiveMode == true)
+                                                if (lsPassiveMode == true)
                                                 {
-                                                    tmpClient = ClientDataListener.AcceptTcpClient();
-                                                    tmpClient.Client.Close();
+                                                    loTmpClient = loClientDataListener.AcceptTcpClient();
+                                                    loTmpClient.Client.Close();
                                                 }
                                                 else
                                                 {
-                                                    ClientDataSocket.Close();
+                                                    loClientDataSocket.Close();
                                                 }
 
-                                                SendAnswer(MySocket, ERROR_PERMISSION_DENIED, ref TimeOutUser);
+                                                SendAnswer(loMySocket, ERROR_PERMISSION_DENIED, ref liTimeOutUser);
                                             }
                                         }
                                         else
                                         {
-                                            SendAnswer(MySocket, "500 Cannot RETR.", ref TimeOutUser);
+                                            SendAnswer(loMySocket, "500 Cannot RETR.", ref liTimeOutUser);
                                         }
 
-                                        ResumeIndex = 0;
+                                        llResumeIndex = 0;
+                                    }
+                                    else if (lsCmd.Equals("MDTM") == true)
+                                    {
+                                        llResumeIndex = 0;
+
+                                        lsLocalFileName = FTPPathToOSPath(lsUserRoot, lsUserCurrentDirectory, lsParameter);
+
+                                        if (CommandMDTM(lsLocalFileName, ref lsResult, ref liError) == true)
+                                        {
+                                            SendAnswer(loMySocket, String.Concat("213 ", lsResult), ref liTimeOutUser);
+                                        }
+                                        else
+                                        {
+                                            ShowError(loMySocket, ref liTimeOutUser, lsParameter, liError);
+                                        }
+                                    }
+                                    else if (lsCmd.Equals("SIZE") == true)
+                                    {
+                                        llResumeIndex = 0;
+
+                                        lsLocalFileName = FTPPathToOSPath(lsUserRoot, lsUserCurrentDirectory, lsParameter);
+
+                                        if (CommandSIZE(lsLocalFileName, ref lsResult, ref liError) == true)
+                                        {
+                                            SendAnswer(loMySocket, String.Concat("213 ", lsResult), ref liTimeOutUser);
+                                        }
+                                        else
+                                        {
+                                            ShowError(loMySocket, ref liTimeOutUser, lsParameter, liError);
+                                        }
+                                    }
+                                    else if (lsCmd.Equals("UTF8") == true)
+                                    {
+                                        llResumeIndex = 0;
+
+                                        if (lsParameter.Equals("on", StringComparison.OrdinalIgnoreCase) == true)
+                                        {
+                                            lbUtf8Mode = true;
+                                            SendAnswer(loMySocket, "200 UTF8 mode enabled", ref liTimeOutUser);
+                                        }
+                                        else if (lsParameter.Equals("off", StringComparison.OrdinalIgnoreCase) == true)
+                                        {
+                                            lbUtf8Mode = false;
+                                            SendAnswer(loMySocket, "200 UTF8 mode disabled", ref liTimeOutUser);
+                                        }
+                                        else
+                                        {
+                                            SendAnswer(loMySocket, "501 Invalid UFT8 options", ref liTimeOutUser);
+                                        }
+                                    }
+                                    else if (lsCmd.Equals( "CLNT") == true)
+                                    {
+                                        llResumeIndex = 0;
+
+                                        Log(String.Concat("[", loMySocket.RemoteEndPoint.ToString(), "] Client name : ", lsParameter));
+                                        SendAnswer(loMySocket, "200 Thank you", ref liTimeOutUser);
+                                    }
+                                    else if (lsCmd.Equals("MFMT") == true)
+                                    {
+                                        llResumeIndex = 0;
+
+                                        if (lbModifyTime == true)
+                                        {
+                                            ExplodeCommand(lsParameter, ref lsModifyTimeOfFile, ref lsFileName);
+
+                                            lsLocalFileName = FTPPathToOSPath(lsUserRoot, lsUserCurrentDirectory, lsFileName);
+
+                                            if (CommandMFMT(lsLocalFileName, lsModifyTimeOfFile, ref liError) == true)
+                                            {
+                                                SendAnswer(loMySocket, String.Concat("213 modify=", lsModifyTimeOfFile, "; ", lsFileName), ref liTimeOutUser);
+                                            }
+                                            else
+                                            {
+                                                ShowError(loMySocket, ref liTimeOutUser, lsParameter, liError);
+                                            }
+
+                                        }
+                                        else
+                                        {
+                                            SendAnswer(loMySocket, "500 Cannot MFMT.", ref liTimeOutUser);
+                                        }
+                                    }
+                                    else if (lsCmd.Equals("FEAT") == true)
+                                    {
+                                        SendAnswer(loMySocket, "211-Features:" , ref liTimeOutUser);
+                                        SendAnswer(loMySocket, " MDTM", ref liTimeOutUser);
+                                        SendAnswer(loMySocket, " SIZE", ref liTimeOutUser);
+                                        SendAnswer(loMySocket, " UTF8 ON|OFF", ref liTimeOutUser);
+                                        SendAnswer(loMySocket, " CLNT", ref liTimeOutUser);
+                                        SendAnswer(loMySocket, " MFMT", ref liTimeOutUser);
+                                        SendAnswer(loMySocket, "211 End", ref liTimeOutUser);
+                                    }
+                                    else if (lsCmd.Equals("RNFR") == true)
+                                    {
+                                        if (lbRename == true)
+                                        {
+                                            lsRenameFrom = lsParameter;
+
+                                            lsLocalFileName = FTPPathToOSPath(lsUserRoot, lsUserCurrentDirectory, lsRenameFrom);
+
+                                            if ((File.Exists(lsLocalFileName) == true) || (Directory.Exists(lsLocalFileName) == true))
+                                            {
+                                                SendAnswer(loMySocket, "350 File exists, ready for destination name." , ref liTimeOutUser);
+                                            }
+                                            else
+                                            {
+                                                ShowError(loMySocket, ref liTimeOutUser, lsRenameFrom, FILE_NOT_FOUND);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            SendAnswer(loMySocket, ERROR_PERMISSION_DENIED , ref liTimeOutUser);
+                                        }
+                                    }
+                                    else if (lsCmd.Equals("RNTO") == true)
+                                    {
+                                        if (lbRename == true)
+                                        {
+                                            lsLocalFileName = FTPPathToOSPath(lsUserRoot, lsUserCurrentDirectory, lsRenameFrom);
+
+                                            if (RenameFileOrDirectory(lsLocalFileName, FTPPathToOSPath(lsUserRoot, lsUserCurrentDirectory, lsParameter), ref liError, ref lbIsDirectory) == true)
+                                            {
+                                                SendAnswer(loMySocket, String.Format("250 {0} '{1}' renamed to '{2}'", (lbIsDirectory ? "Directory" : "File"), lsRenameFrom, lsParameter), ref liTimeOutUser);
+                                            }
+                                            else
+                                            {
+                                                ShowError(loMySocket, ref liTimeOutUser, lsRenameFrom, liError);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            SendAnswer(loMySocket, ERROR_PERMISSION_DENIED , ref liTimeOutUser);
+                                        }
                                     }
                                     else
                                     {
-                                        ResumeIndex = 0;
+                                        llResumeIndex = 0;
 
-                                        SendAnswer(MySocket, "500 Command not understood.", ref TimeOutUser);
+                                        SendAnswer(loMySocket, "500 Command not understood.", ref liTimeOutUser);
                                     }
                                 }
                                 else
                                 {
-                                    SendAnswer(MySocket, "503 Login with USER first.", ref TimeOutUser);
+                                    SendAnswer(loMySocket, "503 lsLogin with USER first.", ref liTimeOutUser);
                                 }
                             }
                         }
@@ -1144,11 +1446,11 @@ namespace ConsoleApplication1
                     else
                     {
                         /* break for some time other wise with the loop the CPU is 100% */
-                        Thread.Sleep(1000);
+                        Thread.Sleep(WAITING_TIME);
 
-                        if (this.TimeOut != 0)
+                        if (piTimeOut != 0)
                         {
-                            TimeOutUser--;
+                            liTimeOutUser--;
                         }
                     }
                 }
@@ -1157,52 +1459,63 @@ namespace ConsoleApplication1
                     break;
                 }
 
-                if (TimeOutUser == 0)
+                if (liTimeOutUser == 0)
                 {
                     break;
                 }
             }
 
-            if (TimeOutUser == 0)
+            if (liTimeOutUser == 0)
             {
-                SendAnswer(MySocket, "503 Time out.", ref TimeOutUser);
-                MySocket.Close();
+                SendAnswer(loMySocket, "503 Time out.", ref liTimeOutUser);
+                loMySocket.Close();
             }
 
 
-            lock (this.LockThread)
+            lock (poLockThread)
             {
-                this.NbClient--;                
+                piNbClient--;
             }
 
-            DisconnectLogin(Login);
+            DisconnectLogin(lsLogin);
 
-            Log("[" + ClientIPAddressString + "] Connection close");
+            Log(String.Concat("[", lsClientIPAddressString, "] Connection close"));
         }
 
         /*
-         * Disconnect user
+         * <summary>Disconnect user</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <param name="asLogin">login to be disconnected</param>
+         * 
+         * <returns>no return</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name
+         * - 10/07/2008 : use String.IsNullOrEmpty()
+         * <history>
          */
-        private void DisconnectLogin(String Login)
+        private void DisconnectLogin(String asLogin)
         {
-            int pos;
+            int liPos;
 
-            lock (this.LockThread)
+            lock (poLockThread)
             {
 
                 /* Disconnect user if connected */
-                if (Login != "")
+                if (String.IsNullOrEmpty(asLogin) == false)
                 {
-                    pos = ConnectedUser.IndexOf(Login);
+                    liPos = plConnectedUser.IndexOf(asLogin);
 
-                    if (pos != -1)
+                    if (liPos != -1)
                     {
-                        NbSessionPerUser[pos]--;
+                        plNbSessionPerUser[liPos]--;
 
-                        if (NbSessionPerUser[pos] <= 0)
+                        if (plNbSessionPerUser[liPos] <= 0)
                         {
-                            ConnectedUser.Remove(ConnectedUser[pos]);
-                            NbSessionPerUser.Remove(NbSessionPerUser[pos]);
+                            plConnectedUser.Remove(plConnectedUser[liPos]);
+                            plNbSessionPerUser.Remove(plNbSessionPerUser[liPos]);
                         }
                     }
                 }
@@ -1210,116 +1523,162 @@ namespace ConsoleApplication1
         }
 
         /*
-         * Disconnect user
+         * <summary>Retrun number of session for login</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <param name="asLogin">login user</param>
+         * 
+         * <returns>number of session</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name,
+         * - 10/08/2008 : use String.IsNullOrEmpty()
+         * <history>
          */
-        private int NumberLogin(String Login)
+        private int NumberLogin(String asLogin)
         {
-            int pos;
-            int retour = 0;
+            int liPos;
+            int liRetour = 0;
 
-            lock (this.LockThread)
+            lock (poLockThread)
             {
-                if (Login != "")
+                if (String.IsNullOrEmpty(asLogin) == false)
                 {
-                    pos = ConnectedUser.IndexOf(Login);
+                    liPos = plConnectedUser.IndexOf(asLogin);
 
-                    if (pos != -1)
+                    if (liPos != -1)
                     {
-                        retour = NbSessionPerUser[pos];
+                        liRetour = plNbSessionPerUser[liPos];
                     }
                 }
             }
 
-            return retour;
+            return liRetour;
         }
 
         /*
-         * Disconnect user
+         * <summary>Add session for login</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <param name="asLogin">login user</param>
+         * 
+         * <returns>no return</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name
+         * - 10/07/2008 : use String.IsNullOrEmpty()
+         * <history>
          */
-        private void AddLogin(String Login)
+        private void AddLogin(String asLogin)
         {
-            int pos;
+            int liPos;
 
-            lock (this.LockThread)
+            lock (poLockThread)
             {
                 /* Disconnect user if connected */
-                if (Login != "")
+                if (String.IsNullOrEmpty(asLogin) == false)
                 {
-                    pos = ConnectedUser.IndexOf(Login);
+                    liPos = plConnectedUser.IndexOf(asLogin);
 
-                    if (pos != -1)
+                    if (liPos != -1)
                     {
-                        NbSessionPerUser[pos]++;
+                        plNbSessionPerUser[liPos]++;
                     }
                     else
                     {
-                        ConnectedUser.Add(Login);
-                        NbSessionPerUser.Add(1);
+                        plConnectedUser.Add(asLogin);
+                        plNbSessionPerUser.Add(1);
                     }
                 }
             }
         }
 
         /*
-         * Convert string to MD5
+         * <summary>Convert string to MD5</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <param name="asPassword">password to be crypted</param>
+         * 
+         * <returns>crypted password</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name
+         * <history>
          */
-        private static string EncodePassword(string password)
+        private static string EncodePassword(string asPassword)
         {
-            byte[] original_bytes = System.Text.Encoding.ASCII.GetBytes(password);
-            byte[] encoded_bytes = new MD5CryptoServiceProvider().ComputeHash(original_bytes);
-            StringBuilder result = new StringBuilder();
-            for (int i = 0; i < encoded_bytes.Length; i++)
+            byte[] laOriginalBytes = System.Text.Encoding.ASCII.GetBytes(asPassword);
+            byte[] laEncodedBytes = new MD5CryptoServiceProvider().ComputeHash(laOriginalBytes);
+            StringBuilder loResult = new StringBuilder();
+            int liIndex;
+
+            for (liIndex = 0; liIndex < laEncodedBytes.Length; liIndex++)
             {
-                result.Append(encoded_bytes[i].ToString("x2"));
+                loResult.Append(laEncodedBytes[liIndex].ToString("x2"));
             }
-            return result.ToString();
+
+            return loResult.ToString();
         }
 
         /*
-         * Convert PORT command to IP
+         * <summary>Convert PORT command to IP</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <param name="asAdresseIP">adress in in PORT command format xxx,xxx,xxx,xxx,yyy,yyy</param>
+         * <param name="aoClientIPAddress">ip adress object</param>
+         * <param name="aiClientPort">port of client</param>
+         * 
+         * <returns>true if correct format</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name
+         * <history>
          */
-        private bool GetClientPort(String AdresseIP, ref IPAddress ClientIPAddress, ref int ClientPort)
+        private bool GetClientPort(String asAdresseIP, ref IPAddress aoClientIPAddress, ref int aiClientPort)
         {
-            bool retour = false;
-            byte[] adr = { 0, 0, 0, 0 };
-            char[] separateur = { ',' };
-            Port = -1;
-            int Value;
+            bool lbRetour = false;
+            byte[] laAdr = { 0, 0, 0, 0 };
+            char[] laSeparateur = { ',' };
+            int liValue;
 
-            ClientIPAddress = new IPAddress(adr);
-            ClientPort = -1;
+            aoClientIPAddress = new IPAddress(laAdr);
+            aiClientPort = -1;
 
-            String[] tmpAdr = AdresseIP.Split(separateur);
+            String[] laTmpAdr = asAdresseIP.Split(laSeparateur);
 
-            if (tmpAdr.Length == 6)
+            if (laTmpAdr.Length == 6)
             {
-                if (int.TryParse(tmpAdr[0], out Value) == true)
+                if (int.TryParse(laTmpAdr[0], out liValue) == true)
                 {
-                    adr[0] = (byte)Value;
+                    laAdr[0] = (byte)liValue;
 
-                    if (int.TryParse(tmpAdr[1], out Value) == true)
+                    if (int.TryParse(laTmpAdr[1], out liValue) == true)
                     {
-                        adr[1] = (byte)Value;
+                        laAdr[1] = (byte)liValue;
 
-                        if (int.TryParse(tmpAdr[2], out Value) == true)
+                        if (int.TryParse(laTmpAdr[2], out liValue) == true)
                         {
-                            adr[2] = (byte)Value;
+                            laAdr[2] = (byte)liValue;
 
-                            if (int.TryParse(tmpAdr[3], out Value) == true)
+                            if (int.TryParse(laTmpAdr[3], out liValue) == true)
                             {
-                                adr[3] = (byte)Value;
+                                laAdr[3] = (byte)liValue;
 
-                                if (int.TryParse(tmpAdr[4], out Value) == true)
+                                if (int.TryParse(laTmpAdr[4], out liValue) == true)
                                 {
-                                    ClientPort = Value << 8;
+                                    aiClientPort = liValue << 8;
 
-                                    if (Int32.TryParse(tmpAdr[5], out Value) == true)
+                                    if (Int32.TryParse(laTmpAdr[5], out liValue) == true)
                                     {
-                                        ClientPort += Value;
+                                        aiClientPort += liValue;
 
-                                        ClientIPAddress = new IPAddress(adr);
+                                        aoClientIPAddress = new IPAddress(laAdr);
 
-                                        retour = true;
+                                        lbRetour = true;
                                     }
                                 }
                             }
@@ -1328,721 +1687,937 @@ namespace ConsoleApplication1
                 }
             }
 
-            return retour;
+            return lbRetour;
         }
 
         /*
-         * Get passive port
+         * <summary>Get passive port and create connection</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <param name="aoClientDataListener">passive connection socket</param>
+         * 
+         * <returns>no return</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name
+         * <history>
          */
-        private int GetPassivePort(ref TcpListener ClientDataListener)
+        private int GetPassivePort(ref TcpListener aoClientDataListener)
         {
-            int retour = -1;
+            int liRetour = -1;
 
-            lock (this.LockThread)
+            lock (poLockThread)
             {
-                if (this.PassivePortFree.Count > 0)
+                if (plPassivePortFree.Count > 0)
                 {
-                    retour = this.PassivePortFree[0];
-                    this.PassivePortFree.Remove(this.PassivePortFree[0]);
+                    liRetour = plPassivePortFree[0];
+                    plPassivePortFree.Remove(plPassivePortFree[0]);
 
-                    this.PassivePortUse.Add(retour);
+                    plPassivePortUse.Add(liRetour);
 
-                    if (ClientDataListener != null)
+                    if (aoClientDataListener != null)
                     {
-                        ClientDataListener.Stop();
+                        aoClientDataListener.Stop();
                     }
 
                     try
                     {
-                        ClientDataListener = new TcpListener(this.ipAddress, retour);
-                        ClientDataListener.Start();
+                        aoClientDataListener = new TcpListener(poIpAddress, liRetour);
+                        aoClientDataListener.Start();
                     }
                     catch
                     {
-                        ClientDataListener = null;
+                        aoClientDataListener = null;
                     }
                 }
             }
 
-            return retour;
+            return liRetour;
         }
 
         /*
-         * Send list of file in directory
+         * <summary>Send list of file in directory</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <param name="asDirectory">directory to list</param>
+         * <param name="aoClientDataListener">passive connection socket</param>
+         * <param name="aoClientSocket">active connection socket</param>
+         * <param name="abPassiveMode">set true to use passive mode</param>
+         * <param name="abPassiveMode">set true to use passive mode</param>
+         * <param name="aiError">return error code</param>
+         * <param name="asRoot">root directory</param>
+         * <param name="asUserCurrentDir">user directory</param>
+         * <param name="aiTimeOutUser">time out time</param
+         * <param name="abNlst">true to user NSLT command format</param>
+         * 
+         * <returns>true if no error</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name,
+         *                add WAITING_TIME constante,
+         * <history>
          */
-        private bool SendListDirectory(String Directory, TcpListener ClientDataListener, int ClientPort, Socket ClientSocket, bool PassiveMode, ref int error, String Root, String UserCurrentDir, ref int TimeOutUser, bool nlst)
+        private bool SendListDirectory(String asDirectory, TcpListener aoClientDataListener, Socket aoClientSocket, bool abPassiveMode, ref int aiError, String asRoot, String asUserCurrentDir, ref int aiTimeOutUser, bool abNlst)
         {
-            bool retour = true;
-            TcpClient client;
-            Byte[] MyBytes;
-            Socket MySocket;
-            int NbBytesRead;
-            int index;
-            int size;
-            int nbBytes;
-            System.Net.Sockets.SocketError errorSocket = new System.Net.Sockets.SocketError();
-            
-            MyBytes = WindowsEncoding.GetBytes(ListDirectory(Directory, UserCurrentDir, Root, ref error, nlst));
+            bool lbRetour = true;
+            TcpClient loClient;
+            Byte[] laMyBytes;
+            Socket loMySocket;
+            int liNbBytesRead;
+            int liIndex;
+            int liSize;
+            int liNbBytes;
+            System.Net.Sockets.SocketError loErrorSocket = new System.Net.Sockets.SocketError();
 
-            if (error == 0)
+            laMyBytes = poWindowsEncoding.GetBytes(ListDirectory(asDirectory, asUserCurrentDir, asRoot, ref aiError, abNlst));
+
+            if (aiError == 0)
             {
                 try
                 {
-                    if (PassiveMode == true)
+                    if (abPassiveMode == true)
                     {
-                        client = ClientDataListener.AcceptTcpClient();
-                        MySocket = client.Client;
+                        loClient = aoClientDataListener.AcceptTcpClient();
+                        loMySocket = loClient.Client;
                     }
                     else
                     {
-                        MySocket = ClientSocket;
+                        loMySocket = aoClientSocket;
                     }
 
-                    NbBytesRead = MyBytes.Length;
-                    index = 0;
-                    size = NbBytesRead;
+                    liNbBytesRead = laMyBytes.Length;
+                    liIndex = 0;
+                    liSize = liNbBytesRead;
 
                     do
                     {
-                        nbBytes = MySocket.Send(MyBytes, index, size, SocketFlags.None, out errorSocket);
+                        liNbBytes = loMySocket.Send(laMyBytes, liIndex, liSize, SocketFlags.None, out loErrorSocket);
 
-                        if (nbBytes == 0)
+                        if (liNbBytes == 0)
                         {
-                            if (errorSocket != System.Net.Sockets.SocketError.WouldBlock)
+                            if (loErrorSocket != System.Net.Sockets.SocketError.WouldBlock)
                             {
                                 /* Connection close */
-                                error = 4;
+                                aiError = CONNECTION_CLOSE_BY_CLIENT ;
                                 break;
                             }
                             else
                             {
                                 /* Why ??? */
-                                Thread.Sleep(1000);
-                                TimeOutUser--;
+                                Thread.Sleep(WAITING_TIME);
+                                aiTimeOutUser--;
 
-                                if (TimeOutUser == 0)
+                                if (aiTimeOutUser == 0)
                                 {
-                                    retour = false;
+                                    lbRetour = false;
                                     break;
                                 }
                             }
                         }
                         else
                         {
-                            retour = true;
-                            TimeOutUser = this.TimeOut;
+                            lbRetour = true;
+                            aiTimeOutUser = piTimeOut;
                         }
 
-                        if (this.Cancel == true)
+                        if (pbCancel == true)
                         {
                             break;
                         }
 
-                        index += nbBytes;
-                        size = MyBytes.Length - index;
+                        liIndex += liNbBytes;
+                        liSize = laMyBytes.Length - liIndex;
                     }
-                    while (size > 0);
+                    while (liSize > 0);
 
-                    retour = true;
+                    lbRetour = true;
 
-                    MySocket.Close();
+                    loMySocket.Close();
                 }
                 catch
                 {
-                    retour = false;
+                    lbRetour = false;
                 }
             }
 
-            return retour;
+            return lbRetour;
         }
 
         /*
-         * Extract file name
+         * <summary>Extract file name in FTP format string</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <param name="asFileName">string contain directory et file name</param>
+         * 
+         * <returns>no return</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name,
+         * - 08/07/2008 : use Char.Equals(),
+         * <history>
          */
-        private String ExtractFileName(String FileName)
+        private String ExtractFileName(String asFileName)
         {
-            int i;
-            String retour = "";
+            int liIndex;
+            String lsRetour = String.Empty;
 
-            for (i = FileName.Length - 1; i >= 0; i--)
+            for (liIndex = asFileName.Length - 1; liIndex >= 0; liIndex--)
             {
-                if (FileName[i] == '/')
+                if (asFileName[liIndex].Equals('/') == true)
                 {
                     break;
                 }
                 else
                 {
-                    retour = FileName[i] + retour;
+                    lsRetour = asFileName[liIndex] + lsRetour;
                 }
             }
 
-            return retour;
+            return lsRetour;
         }
 
         /*
-         * Create line of directory 
+         * <summary>Create line of directory for SendListDirectory() function</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <param name="asDirName">directory name</param>
+         * 
+         * <returns>no return</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name,
+         * - 10/07/2008 : use String.Concat(),
+         * - 14/07/2008 : use StringBuilder
+         * <history>
          */
-        private String ListDir(String DirName)
+        private void ListDir(String asDirName, System.Text.StringBuilder aoString)
         {
-            String Line = "d";
-            DateTime dtDir = Directory.GetCreationTime(DirName);
-            String Rights;
+            DateTime loDtDir = Directory.GetCreationTime(asDirName);
+            String lsRights;
+
+            aoString.Append("d");
 
             try
             {
-                String[] ListOfFile = System.IO.Directory.GetFiles(DirName, "*.*");
-                Rights = "rwx";
+                String[] laListOfFile = System.IO.Directory.GetFiles(asDirName, "*.*");
+                lsRights = "rwx";
             }
             catch
             {
-                Rights = "-wx";
+                lsRights = "-wx";
             }
 
-            Line += Rights + Rights + Rights + "   1 ftp      ftp 0 " + MonthLabel[dtDir.Month] + " ";
+            aoString.Append(lsRights);
+            aoString.Append(lsRights);
+            aoString.Append(lsRights);
+            aoString.Append("   1 ftp      ftp 0 ");
+            aoString.Append(paMonthLabel[loDtDir.Month - 1]);
+            aoString.Append(" ");
 
-            if (dtDir.Day < 10)
+            if (loDtDir.Day < 10)
             {
-                Line += "0";
+                aoString.Append("0");
             }
 
-            Line += "" + dtDir.Day + " ";
+            aoString.Append(loDtDir.Day.ToString());
+            aoString.Append(" ");
 
-            if (dtDir.Year == DateTime.Now.Year)
+            if (loDtDir.Year == DateTime.Now.Year)
             {
-                if (dtDir.Hour < 10)
+                if (loDtDir.Hour < 10)
                 {
-                    Line += "0";
+                    aoString.Append("0");
                 }
 
-                Line += "" + dtDir.Hour + ":";
+                aoString.Append(loDtDir.Hour.ToString());
+                aoString.Append(":");
 
-                if (dtDir.Minute < 10)
+                if (loDtDir.Minute < 10)
                 {
-                    Line += "0";
+                    aoString.Append("0");
                 }
 
-                Line += "" + dtDir.Minute + " ";
+                aoString.Append(loDtDir.Minute.ToString());
+                aoString.Append(" ");
             }
             else
             {
-                Line += " " + DateTime.Now.Year + " ";
+                aoString.Append(" ");
+                aoString.Append(loDtDir.Year.ToString());
+                aoString.Append(" ");
             }
 
-            Line += Path.GetFileName(DirName);
-
-            return Line;
+            aoString.Append(Path.GetFileName(asDirName));
         }
 
         /*
-        * Create line of file 
-        */
-        private String ListFile(String FileName)
+         * <summary>Create line of file for SendListDirectory() function</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <param name="asFileName">file name</param>
+         * 
+         * <returns>no return</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name
+         * - 10/07/2008 : use String.Concat(),
+         * - 14/07/2008 : use StringBuilder,
+         * <history>
+         */
+        private void ListFile(String asFileName, System.Text.StringBuilder aoString)
         {
-            String Line = "-";
-            String Rights = "";
-            DateTime dtFile = File.GetCreationTime(FileName);
-            FileInfo f = new FileInfo(FileName); ;
+            String lsRights = String.Empty;
+            DateTime loDtFile = File.GetLastWriteTime(asFileName);
+            FileInfo loFi = new FileInfo(asFileName); ;
+
+            aoString.Append("-");
 
             try
             {
-                FileStream fs = new FileStream(FileName, FileMode.Open, FileAccess.Read);
+                FileStream fs = new FileStream(asFileName, FileMode.Open, FileAccess.Read);
                 fs.Close();
 
-                Rights = "r";
+                lsRights = "r";
             }
             catch
             {
-                Rights = "-";
+                lsRights = "-";
             }
 
-            if ((File.GetAttributes(FileName) & FileAttributes.ReadOnly) != 0)
+            if ((File.GetAttributes(asFileName) & FileAttributes.ReadOnly) != 0)
             {
-                Rights += "-";
+                lsRights = String.Concat(lsRights, "-");
             }
             else
             {
-                Rights += "w";
+                lsRights = String.Concat(lsRights, "w");
             }
 
-            Rights += "-";
+            lsRights = String.Concat(lsRights, "w");
 
-            Line += Rights + Rights + Rights + "   1 ftp      ftp " + f.Length + " " + MonthLabel[dtFile.Month - 1] + " ";
+            aoString.Append(lsRights);
+            aoString.Append(lsRights);
+            aoString.Append(lsRights);
+            aoString.Append("   1 ftp      ftp ");
+            aoString.Append(loFi.Length);
+            aoString.Append(" ");
+            aoString.Append(paMonthLabel[loDtFile.Month - 1]);
+            aoString.Append(" ");
 
-            if (dtFile.Day < 10)
+            if (loDtFile.Day < 10)
             {
-                Line += "0";
+                aoString.Append("0");
             }
 
-            Line += "" + dtFile.Day + " ";
+            aoString.Append(loDtFile.Day.ToString());
+            aoString.Append(" ");
 
-            if (dtFile.Year == DateTime.Now.Year)
+            if (loDtFile.Year == DateTime.Now.Year)
             {
-                if (dtFile.Hour < 10)
+                if (loDtFile.Hour < 10)
                 {
-                    Line += "0";
+                    aoString.Append("0");
                 }
 
-                Line += "" + dtFile.Hour + ":";
+                aoString.Append(loDtFile.Hour.ToString());
+                aoString.Append(":");
 
-                if (dtFile.Minute < 10)
+                if (loDtFile.Minute < 10)
                 {
-                    Line += "0";
+                    aoString.Append("0");
                 }
 
-                Line += "" + dtFile.Minute + " ";
+                aoString.Append(loDtFile.Minute.ToString());
+                aoString.Append(" ");
             }
             else
             {
-                Line += " " + DateTime.Now.Year + " ";
+                aoString.Append(" ");
+                aoString.Append(loDtFile.Year.ToString());
+                aoString.Append(" ");
             }
 
-            Line += Path.GetFileName(FileName);
-
-            return Line;
+            aoString.Append(Path.GetFileName(asFileName));
         }
 
         /*
-         * List file and sub-directory of directory
+         * <summary>List file and sub-directory of directory</summary>
          * 
+         * <remarks>
          * error = 0 : OK
          * error = 1 : can't open data connection
          * error = 2 : access denied
          * error = 3 : not find
+         * </remarks>
+         * 
+         * <param name="asDir">directory name to list</param>
+         * <param name="asUserCurrentDir">user current directory</param>
+         * <param name="asRoot">root directory</param>
+         * <param name="aiError">return error</param>
+         * <param name="abNlst">true to user NLST command format</param>
+         * 
+         * <returns>return list of directory in string</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name,
+         * - 10/07/2008 : use String.Empty,
+         * <history>
          */
-        private String ListDirectory(String Dir, String UserCurrentDir, String Root, ref int error, bool nlst)
+        private String ListDirectory(String asDir, String asUserCurrentDir, String asRoot, ref int aiError, bool abNlst)
         {
-            int i;
-            String retour = "";
-            error = 1;
-            String LocalDir = FTPPathToOSPath(Root, UserCurrentDir, Dir);
+            int liIndex;
+            String lsLocalDir = FTPPathToOSPath(asRoot, asUserCurrentDir, asDir);
+            System.Text.StringBuilder loString = new System.Text.StringBuilder(String.Empty);
+
+            aiError = 1;
 
             try
             {
-                if (Directory.Exists(LocalDir) == true)
+                if (Directory.Exists(lsLocalDir) == true)
                 {
-                    String[] ListOfFile = System.IO.Directory.GetFiles(LocalDir, "*.*");
-                    String[] ListOfDirecotry = System.IO.Directory.GetDirectories(LocalDir, "*.*");
+                    String[] laListOfFile = System.IO.Directory.GetFiles(lsLocalDir, "*.*");
+                    String[] laListOfDirecotry = System.IO.Directory.GetDirectories(lsLocalDir, "*.*");
 
-                    for (i = 0; i < ListOfDirecotry.Length; i++)
+                    for (liIndex = 0; liIndex < laListOfDirecotry.Length; liIndex++)
                     {
-                        if (nlst == true)
+                        if (abNlst == true)
                         {
-                            retour += ListOfDirecotry[i];
+                            loString.Append(laListOfDirecotry[liIndex]);
                         }
                         else
                         {
-                            retour += ListDir(ListOfDirecotry[i]);
+                            ListDir(laListOfDirecotry[liIndex], loString);
                         }
 
-                        retour += EOL;
+                        loString.Append(EOL);
                     }
 
-                    for (i = 0; i < ListOfFile.Length; i++)
+                    for (liIndex = 0; liIndex < laListOfFile.Length; liIndex++)
                     {
-                        if (nlst == true)
+                        if (abNlst == true)
                         {
-                            retour += ListOfFile[i];
+                            loString.Append(laListOfFile[liIndex]);
                         }
                         else
                         {
-                            retour += ListFile(ListOfFile[i]);
+                            ListFile(laListOfFile[liIndex], loString);
                         }
 
-                        retour += EOL;
+                        loString.Append(EOL);
                     }
 
-                    error = 0;
+                    aiError = SUCCESS;
                 }
-                else if (File.Exists(LocalDir) == true)
+                else if (File.Exists(lsLocalDir) == true)
                 {
-                    retour = ListFile(LocalDir) + EOL;
+                    ListFile(lsLocalDir, loString);
+                    loString.Append(EOL);
                 }
                 else
                 {
-                    error = 3;
+                    aiError = FILE_NOT_FOUND;
                 }
             }
             catch
             {
-                error = 2;
+                aiError = ACCES_DENIED;
             }
 
-            return retour;
+            return loString.ToString();
         }
 
         /*
-         * Extract command and parameter
+         * <summary>Extract command and parameter</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <param name="asLine">line reading</param>
+         * <param name="asCmd">return command (e.g. LIST)</param>
+         * <param name="asParameter">return parameter (e.g. /truc)</param>
+         * 
+         * <returns>no return</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name
+         * - 08/07/2008 : use Char.Equals()
+         * <history>
          */
-        private void ExplodeCommand(String Line, ref String Cmd, ref String Parameter)
+        private void ExplodeCommand(String asLine, ref String asCmd, ref String asParameter)
         {
-            int i;
+            int liIndex;
 
-            Cmd = "";
-            Parameter = "";
+            asCmd = "";
+            asParameter = "";
 
-            for (i = 0; i < Line.Length; i++)
+            for (liIndex = 0; liIndex < asLine.Length; liIndex++)
             {
-                if (Line[i] == ' ')
+                if (asLine[liIndex].Equals(' ') == true)
                 {
-                    i++;
+                    liIndex++;
                     break;
                 }
                 else
                 {
-                    Cmd += Line[i];
+                    asCmd += asLine[liIndex];
                 }
             }
 
-            Cmd = Cmd.ToUpper();
-            Parameter = Line.Substring(i);
+            asCmd = asCmd.ToUpper();
+            asParameter = asLine.Substring(liIndex);
         }
 
         /*
-         * Free a free port
+         * <summary>Free a passive port</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <param name="aiPort">passive port to be free</param>
+         * 
+         * <returns>no return</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name
+         * <history>
          */
-        private void FreePassivePort(int Port)
+        private void FreePassivePort(int aiPort)
         {
-            int pos;
-            int FreePort;
+            int liPos;
+            int liFreePort;
 
-            pos = this.PassivePortUse.IndexOf(Port);
+            liPos = plPassivePortUse.IndexOf(aiPort);
 
-            if (pos != -1)
+            if (liPos != -1)
             {
-                FreePort = this.PassivePortUse[pos];
-                this.PassivePortUse.Remove(this.PassivePortUse[pos]);
-                this.PassivePortFree.Add(FreePort);
+                liFreePort = plPassivePortUse[liPos];
+                plPassivePortUse.Remove(plPassivePortUse[liPos]);
+                plPassivePortFree.Add(liFreePort);
             }
         }
 
         /*
-         * Change directory
-         *  0 = OK
+         * <summary>Change directory</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <param name="asRoot">root user directory</param>
+         * <param name="asDir">directory to be change</param>
+         * <param name="asUserCurrentDirectory">current user directory</param>
+         * <param name="asCurrentWorkDirectory">user current work directory</param>
+         * 
+         * <returns>0 = OK
          *  1 = Acces denied
-         *  2 = Not found
+         *  2 = Not found</returns>
+         *  
+         * <history>
+         * - 06/07/2008 : rename variable name
+         * <history>
          */
-        private int ChangeDirectory(String Root, String Dir, ref String UserCurrentDirectory, ref String CurrentWorkDirectory)
+        private int ChangeDirectory(String asRoot, String asDir, ref String asUserCurrentDirectory, ref String asCurrentWorkDirectory)
         {
-            int retour = -1;
-            String newdir = "";
-            String newpath = "";
+            int liRetour = -1;
+            String lsNewDir = "";
+            String lsNewPath = "";
 
-            if (Dir.Length > 0)
+            if (asDir.Length > 0)
             {
-                if (Dir[0] != '/')
+                /* if it's relative path */
+                if (asDir[0].Equals('/') == false)
                 {
-                    newdir = AddDirSeparatorAtEnd(UserCurrentDirectory, '/') + Dir;
+                    lsNewDir = AddDirSeparatorAtEnd(asUserCurrentDirectory, '/') + asDir;
                 }
                 else
                 {
-                    newdir = Dir;
+                    lsNewDir = asDir;
                 }
             }
             else
             {
-                newdir = UserCurrentDirectory;
+                lsNewDir = asUserCurrentDirectory;
             }
 
             /* Vérification du chemin */
-            newpath = newdir;
+            lsNewPath = lsNewDir;
 
-            if (newpath.Length > 0)
+            if (lsNewPath.Length > 0)
             {
-                if (newpath[0] == '/')
+                if (lsNewPath[0].Equals('/') == true)
                 {
-                    newpath = newpath.Substring(1);
+                    lsNewPath = lsNewPath.Substring(1);
                 }
             }
 
-            newpath = AddDirSeparatorAtEnd(Root, Path.DirectorySeparatorChar) + newpath.Replace('/', Path.DirectorySeparatorChar);
+            lsNewPath = AddDirSeparatorAtEnd(asRoot, Path.DirectorySeparatorChar) + lsNewPath.Replace('/', Path.DirectorySeparatorChar);
+            lsNewPath = AddDirSeparatorAtEnd(Path.GetFullPath(lsNewPath), Path.DirectorySeparatorChar) ;
 
-            newpath = AddDirSeparatorAtEnd(Path.GetFullPath(newpath), Path.DirectorySeparatorChar) ;
-
-            if (Directory.Exists(newpath) == true)
+            if (Directory.Exists(lsNewPath) == true)
             {
-                if (CurrentWorkDirectory.StartsWith(Root) == true)
+                if (asCurrentWorkDirectory.StartsWith(asRoot) == true)
                 {
                     try
                     {
-                        String[] ListOfFile = System.IO.Directory.GetFiles(newpath, "*.*");
+                        String[] ListOfFile = System.IO.Directory.GetFiles(lsNewPath, "*.*");
 
-                        retour = 0;
+                        liRetour = 0;
 
-                        if (newpath.StartsWith(Root) == true)
+                        if (lsNewPath.StartsWith(asRoot) == true)
                         {
-                            UserCurrentDirectory = newpath.Substring(Root.Length).Replace(Path.DirectorySeparatorChar, '/');
-                            CurrentWorkDirectory = newpath;
+                            asUserCurrentDirectory = lsNewPath.Substring(asRoot.Length).Replace(Path.DirectorySeparatorChar, '/');
+                            asCurrentWorkDirectory = lsNewPath;
                         }
                         else
                         {
-                            retour = 1;
+                            liRetour = 1;
                         }
                     }
                     catch
                     {
-                        retour = 1;
+                        liRetour = 1;
                     }
                 }
                 else
                 {
-                    retour = 1;
+                    liRetour = 1;
                 }
             }
             else
             {
-                retour = 2;
+                liRetour = 2;
             }
 
-            return retour;
+            return liRetour;
         }
 
         /*
-         * Translate FTP path to OS path
+         * <summary>Translate FTP path to OS path</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <param name="asRoot">user root directory</param>
+         * <param name="asUserCurrentDir">user current directory</param>
+         * <param name="asName">name of directory/file name</param>
+         * 
+         * <returns>return path</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name,
+         * - 08/07/2008 : use Char.Equals(),
+         * - 10/07/2008 : use String.Empty,
+         * <history>
          */
-        private String FTPPathToOSPath(String Root, String UserCurrentDir, String Name)
+        private String FTPPathToOSPath(String asRoot, String asUserCurrentDir, String asName)
         {
-            String retour = "";
+            String lsRetour = String.Empty;
 
-            retour = AddDirSeparatorAtEnd(Root, Path.DirectorySeparatorChar);
+            lsRetour = AddDirSeparatorAtEnd(asRoot, Path.DirectorySeparatorChar);
 
             /* We delete first / */
-            if (UserCurrentDir.Length > 0)
+            if (asUserCurrentDir.Length > 0)
             {
-                if (UserCurrentDir[0] == '/')
+                if (asUserCurrentDir[0].Equals('/') == true)
                 {
-                    UserCurrentDir = UserCurrentDir.Substring(1);
+                    asUserCurrentDir = asUserCurrentDir.Substring(1);
                 }
             }
 
             /* We delete first / */
-            if (Name.Length > 0)
+            if (asName.Length > 0)
             {
-                if (Name[0] == '/')
+                if (asName[0].Equals('/') == true)
                 {
-                    Name = Name.Substring(1);
+                    asName = asName.Substring(1);
                 }
                 else
                 {
-                    Name = AddDirSeparatorAtEnd(UserCurrentDir, '/') + Name;
+                    asName = AddDirSeparatorAtEnd(asUserCurrentDir, '/') + asName;
                 }
             }
             else
             {
-                Name = UserCurrentDir;
+                asName = asUserCurrentDir;
             }
 
-            Name = Name.Replace('/', Path.DirectorySeparatorChar);
+            asName = asName.Replace('/', Path.DirectorySeparatorChar);
 
-            return retour + Name;
+            return lsRetour + asName;
 
         }
 
         /*
-         * Show error
+         * <summary>Show error</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <param name="aoClientSocket">client socket</param>
+         * <param name="aiTimeOutUser">time out time</param>
+         * <param name="asFileName">file name that have error</param>
+         * <param name="aiError">error number</param>
+         * 
+         * <returns>no return</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name
+         * <history>
          */
-        private void ShowError(Socket ClientSocket, ref int TimeOutUser, String FileName, int error)
+        private void ShowError(Socket aoClientSocket, ref int aiTimeOutUser, String asFileName, int aiError)
         {
-            if (error == 1)
+            if (aiError == CANT_OPEN_DATA_CONNECTION)
             {
-                SendAnswer(ClientSocket, "425 Can't open data connection.", ref TimeOutUser);
+                SendAnswer(aoClientSocket, "425 Can't open data connection.", ref aiTimeOutUser);
             }
-            else if (error == 2)
+            else if (aiError == ACCES_DENIED)
             {
-                SendAnswer(ClientSocket, "500 Access denied.", ref TimeOutUser);
+                SendAnswer(aoClientSocket, "500 Access denied.", ref aiTimeOutUser);
             }
-            else if (error == 3)
+            else if (aiError == FILE_NOT_FOUND)
             {
-                SendAnswer(ClientSocket, String.Format(MSG_FILE_NOT_FOUND, FileName), ref TimeOutUser);
+                SendAnswer(aoClientSocket, String.Format(MSG_FILE_NOT_FOUND, asFileName), ref aiTimeOutUser);
             }
-            else if (error == 4)
+            else if (aiError == CONNECTION_CLOSE_BY_CLIENT)
             {
-                SendAnswer(ClientSocket, "421 Connection close by client.", ref TimeOutUser);
+                SendAnswer(aoClientSocket, "421 Connection close by client.", ref aiTimeOutUser);
             }
-            else if (error == 5)
+            else if (aiError == CONNECTION_CLOSE_SERVER_SHUTDOWN)
             {
-                SendAnswer(ClientSocket, "421 Connection close cause server shutdown.", ref TimeOutUser);
+                SendAnswer(aoClientSocket, "421 Connection close cause server shutdown.", ref aiTimeOutUser);
             }
-            else if (error == 6)
+            else if (aiError == NO_ENOUGH_SPACE)
             {
-                SendAnswer(ClientSocket, "426 Connection close by server. Not enough space.", ref TimeOutUser);
+                SendAnswer(aoClientSocket, "426 Connection close by server. Not enough space.", ref aiTimeOutUser);
+            }
+            else if (aiError == NOT_VALID_DATE)
+            {
+                SendAnswer(aoClientSocket, "501 Not a valid date.", ref aiTimeOutUser);
+            }
+            else if (aiError == SYNTAX_ERROR)
+            {
+                SendAnswer(aoClientSocket, "501 Syntax error.", ref aiTimeOutUser);
+            }
+            else if (aiError == FILE_ALREADY_EXIST)
+            {
+                SendAnswer(aoClientSocket, String.Format("553 '{0}': file already exists.", asFileName), ref aiTimeOutUser);
+            }
+            else if (aiError == DIRECTORY_ALREADY_EXIST)
+            {
+                SendAnswer(aoClientSocket, String.Format("553 '{0}': directory already exists.", asFileName), ref aiTimeOutUser);
             }
         }
 
         /*
-         * Send a binary file
-         * error : see ShowError for more detail
+         * <summary>Send a binary file</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <param name="aoInFileReadBinary">object file binary to read</param>
+         * <param name="aoClientDataListener">client socket for pasive mode</param>
+         * <param name="aoClientSocket">client socket for active mode</param>
+         * <param name="abPassiveMode">true use passive mode</param>
+         * <param name="aiError">!= 0 -> error see ShowError() for more detail</param>
+         * <param name="alStartIndex">start index of file (resume command)</param>
+         * <param name="aiTimeOutUser">time out time</param>
+         * 
+         * <returns>no return</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name, 
+         *                add WAITING_TIME constante,
+         * <history>
          */
-        private bool SendBinaryFile(FileStream inFileReadBinary, TcpListener ClientDataListener, int ClientPort, Socket ClientSocket, bool PassiveMode, ref int error, long StartIndex, ref int TimeOutUser)
+        private bool SendBinaryFile(FileStream aoInFileReadBinary, TcpListener aoClientDataListener, Socket aoClientSocket, bool abPassiveMode, ref int aiError, long alStartIndex, ref int aiTimeOutUser)
         {
-            bool retour = false;
-            TcpClient client;
-            Byte[] MyBytes = new Byte[BLOCK_SIZE];
-            Socket MySocket;
-            int NbBytesRead ;
-            bool blockingState = ClientSocket.Blocking;
-            System.Net.Sockets.SocketError errorSocket = new System.Net.Sockets.SocketError();
-            int index = 0;
-            int size = MyBytes.Length;
-            int nbBytes = 0;
-            bool InternalError = false;
+            bool lbRetour = false;
+            TcpClient loClient;
+            Byte[] laMyBytes = new Byte[BLOCK_SIZE];
+            Socket loMySocket;
+            int liNbBytesRead ;
+            bool lbBlockingState = aoClientSocket.Blocking;
+            System.Net.Sockets.SocketError loErrorSocket = new System.Net.Sockets.SocketError();
+            int liIndex = 0;
+            int liSize = laMyBytes.Length;
+            int liNbBytes = 0;
+            bool lbInternalError = false;
 
-            error = 0;
+            aiError = SUCCESS;
+
+            aoClientSocket.Blocking = false;
 
             try
             {
-                if (PassiveMode == true)
+                if (abPassiveMode == true)
                 {
-                    client = ClientDataListener.AcceptTcpClient();
-                    MySocket = client.Client;
+                    loClient = aoClientDataListener.AcceptTcpClient();
+                    loMySocket = loClient.Client;
                 }
                 else
                 {
-                    MySocket = ClientSocket;
+                    loMySocket = aoClientSocket;
                 }
 
-                MySocket.Blocking = false ;
+                loMySocket.Blocking = false ;
 
-                if (StartIndex > 0)
+                if (alStartIndex > 0)
                 {
-                    inFileReadBinary.Seek(StartIndex, SeekOrigin.Begin);
+                    aoInFileReadBinary.Seek(alStartIndex, SeekOrigin.Begin);
                 }
 
                 do
                 {
-                    NbBytesRead = inFileReadBinary.Read(MyBytes, 0, MyBytes.Length);
+                    liNbBytesRead = aoInFileReadBinary.Read(laMyBytes, 0, laMyBytes.Length);
 
-                    if (NbBytesRead > 0)
+                    if (liNbBytesRead > 0)
                     {
-                        index = 0 ;
-                        size = NbBytesRead ;
+                        liIndex = 0 ;
+                        liSize = liNbBytesRead ;
 
                         do
                         {
-                            nbBytes = MySocket.Send(MyBytes, index, size, SocketFlags.None, out errorSocket);
+                            liNbBytes = loMySocket.Send(laMyBytes, liIndex, liSize, SocketFlags.None, out loErrorSocket);
 
-                            if (nbBytes == 0)
+                            if (liNbBytes == 0)
                             {
-                                if (errorSocket != System.Net.Sockets.SocketError.WouldBlock)
+                                if (loErrorSocket != System.Net.Sockets.SocketError.WouldBlock)
                                 {
                                     /* Connection close */
-                                    error = 4;
-                                    InternalError = true;
+                                    aiError = CONNECTION_CLOSE_BY_CLIENT;
+                                    lbInternalError = true;
                                     break;
                                 }
                                 else
                                 {
                                     /* Why ??? */
-                                    Thread.Sleep(1000);
-                                    TimeOutUser--;
+                                    Thread.Sleep(WAITING_TIME);
+                                    aiTimeOutUser--;
 
-                                    if (TimeOutUser == 0)
+                                    if (aiTimeOutUser == 0)
                                     {
-                                        retour = false;
+                                        lbRetour = false;
                                         break;
                                     }
                                 }
                             }
                             else
                             {
-                                retour = true;
-                                TimeOutUser = this.TimeOut;
+                                lbRetour = true;
+                                aiTimeOutUser = piTimeOut;
                             }
 
-                            if (this.Cancel == true)
+                            if (pbCancel == true)
                             {
                                 break;
                             }
 
-                            index += nbBytes;
-                            size = MyBytes.Length - index;
+                            liIndex += liNbBytes;
+                            liSize = laMyBytes.Length - liIndex;
                         }
-                        while (size > 0);
+                        while (liSize > 0);
                     }
                 }
-                while ((NbBytesRead == MyBytes.Length) && (InternalError == false)); 
+                while ((liNbBytesRead == laMyBytes.Length) && (lbInternalError == false)); 
 
-                if (this.Cancel == true)
+                if (pbCancel == true)
                 {
-                    error = 5;
+                    aiError = CONNECTION_CLOSE_SERVER_SHUTDOWN;
                 }
                 else
                 {
-                    retour = true;
+                    lbRetour = true;
                 }
 
-                MySocket.Close();
+                loMySocket.Close();
             }
             catch
             {
-                error = 1;
+                aiError = CANT_OPEN_DATA_CONNECTION;
             }
 
+            aoClientSocket.Blocking = lbBlockingState;
 
-            return retour;
+            return lbRetour;
         }
 
         /*
-         * Send a text file
-         * error : see ShowError for more detail
+         * <summary>Send a text file</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <param name="aoInFileReadText">object text file to read</param>
+         * <param name="aoClientDataListener">client socket for pasive mode</param>
+         * <param name="aoClientSocket">client socket for active mode</param>
+         * <param name="abPassiveMode">true use passive mode</param>
+         * <param name="aiError">!= 0 -> error see ShowError() for more detail</param>
+         * <param name="alStartIndex">start index of file (resume command)</param>
+         * <param name="aiTimeOutUser">time out time</param>
+         * 
+         * <returns>no return</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name
+         *                add WAITING_TIME constante,
+         * <history>
          */
-        private bool SendTextFile(StreamReader inFileReadText, TcpListener ClientDataListener, int ClientPort, Socket ClientSocket, bool PassiveMode, ref int error, ref int TimeOutUser)
+        private bool SendTextFile(StreamReader aoInFileReadText, TcpListener aoClientDataListener, Socket aoClientSocket, bool abPassiveMode, ref int aiError, ref int aiTimeOutUser)
         {
-            bool retour = false;
-            TcpClient client;
-            Byte[] MyBytes  ;
-            Socket MySocket;
-            bool blockingState = ClientSocket.Blocking;
-            System.Net.Sockets.SocketError errorSocket = new System.Net.Sockets.SocketError();
-            int index = 0;
-            int size = 0;
+            bool lbRetour = false;
+            TcpClient loClient;
+            Byte[] laMyBytes  ;
+            Socket loMySocket;
+            bool lbBlockingState = aoClientSocket.Blocking;
+            System.Net.Sockets.SocketError loErrorSocket = new System.Net.Sockets.SocketError();
+            int liIndex = 0;
+            int liSize = 0;
             int nbBytes = 0;
-            String Line;
-            bool InternalError = false;
+            String lsLine;
 
-            error = 0;
+            aiError = SUCCESS;
+
+            aoClientSocket.Blocking = false;
 
             try
             {
-                if (PassiveMode == true)
+                if (abPassiveMode == true)
                 {
-                    client = ClientDataListener.AcceptTcpClient();
-                    MySocket = client.Client;
+                    loClient = aoClientDataListener.AcceptTcpClient();
+                    loMySocket = loClient.Client;
                 }
                 else
                 {
-                    MySocket = ClientSocket;
+                    loMySocket = aoClientSocket;
                 }
 
-                MySocket.Blocking = false ;
+                loMySocket.Blocking = false ;
 
                 do
                 {
-                    Line = inFileReadText.ReadLine() + EOL;
+                    lsLine = aoInFileReadText.ReadLine() + EOL;
 
-                    MyBytes = WindowsEncoding.GetBytes(Line);
+                    laMyBytes = poWindowsEncoding.GetBytes(lsLine);
 
-                    index = 0;
-                    size = MyBytes.Length;
+                    liIndex = 0;
+                    liSize = laMyBytes.Length;
 
                     do
                     {
-                        nbBytes = MySocket.Send(MyBytes, index, size, SocketFlags.None, out errorSocket);
+                        nbBytes = loMySocket.Send(laMyBytes, liIndex, liSize, SocketFlags.None, out loErrorSocket);
 
                         if (nbBytes == 0)
                         {
-                            if (errorSocket != System.Net.Sockets.SocketError.WouldBlock)
+                            if (loErrorSocket != System.Net.Sockets.SocketError.WouldBlock)
                             {
                                 /* Connection close */
-                                error = 4;
+                                aiError = CONNECTION_CLOSE_BY_CLIENT;
                                 break;
                             }
                             else
                             {
                                 /* Why ??? */
-                                Thread.Sleep(1000);
-                                TimeOutUser--;
+                                Thread.Sleep(WAITING_TIME);
+                                aiTimeOutUser--;
 
-                                if (TimeOutUser == 0)
+                                if (aiTimeOutUser == 0)
                                 {
                                     break;
                                 }
@@ -2050,117 +2625,152 @@ namespace ConsoleApplication1
                         }
                         else
                         {
-                            retour = true;
-                            TimeOutUser = this.TimeOut;
+                            lbRetour = true;
+                            aiTimeOutUser = piTimeOut;
                         }
 
-                        if (this.Cancel == true)
+                        if (pbCancel == true)
                         {
                             break;
                         }
 
-                        index += nbBytes;
-                        size = MyBytes.Length - index;
+                        liIndex += nbBytes;
+                        liSize = laMyBytes.Length - liIndex;
                     }
-                    while (size > 0);
+                    while (liSize > 0);
                 }
-                while ((inFileReadText.EndOfStream == false) && (InternalError == false));
+                while (aoInFileReadText.EndOfStream == false);
 
-                if (this.Cancel == true)
+                if (pbCancel == true)
                 {
-                    error = 5;
+                    aiError = CONNECTION_CLOSE_SERVER_SHUTDOWN;
                 }
                 else
                 {
-                    retour = true;
+                    lbRetour = true;
                 }
 
-                MySocket.Close();
+                loMySocket.Close();
             }
             catch
             {
-                error = 1;
+                aiError = CANT_OPEN_DATA_CONNECTION;
             }
 
+            aoClientSocket.Blocking = lbBlockingState;
 
-            return retour;
+            return lbRetour;
         }
 
         /*
-         * Extract IP Address
+         * <summary>Extract IP Address from IPAdress.ToString()</summary>
+		 *
+         * <remarks></remarks>
+		 *
+         * <param name="asIPAddr">IPAdress.ToString()</param>
+		 *
+         * <returns>no return</returns>
+		 *
+         * <history>
+         * - 06/07/2008 : rename variable name,
+         * - 08/07/2008 : use Char.Equals(),
+         * - 10/07/2008 : use String.Empty,
+         * <history>
          */
-        private String ExtractIp(String IPAddr)
+        private String ExtractIp(String asIPAddr)
         {
-            String retour = "";
-            int i;
+            String lsRetour = String.Empty;
+            int liIndex;
 
-            for (i = 0; i < IPAddr.Length; i++)
+            for (liIndex = 0; liIndex < asIPAddr.Length; liIndex++)
             {
-                if (IPAddr[i] == ':')
+                if (asIPAddr[liIndex].Equals(':') == true)
                 {
                     break;
                 }
                 else
                 {
-                    retour += IPAddr[i];
+                    lsRetour += asIPAddr[liIndex];
                 }
             }
 
-            return retour;
+            return lsRetour;
         }
 
-
         /*
-         * Get a  file
-         * error : see ShowError for more detail
+         * <summary>Get a file (text or binary) from client</summary>
+         * 
+         * <remarks></remarks>
+         * 
+         * <param name="aoOutFileWriteBinary">object file to write</param>
+         * <param name="aoClientDataListener">client socket for pasive mode</param>
+         * <param name="aoClientSocket">client socket for active mode</param>
+         * <param name="abPassiveMode">true use passive mode</param>
+         * <param name="aiError">!= 0 -> error see ShowError() for more detail</param>
+         * <param name="alStartIndex">start index of file (resume command)</param>
+         * <param name="abBinaryMode">true if write binary file</param>
+         * <param name="aiTimeOutUser">time out time</param>
+         * 
+         * <returns>no return</returns>
+         * 
+         * <history>
+         * - 06/07/2008 : rename variable name,
+         *                add WAITING_TIME constante,
+         * <history>
          */
-        private bool GetFile(FileStream outFileWriteBinary, TcpListener ClientDataListener, int ClientPort, Socket ClientSocket, bool PassiveMode, ref int error, long StartIndex, bool BinaryMode, ref int TimeOutUser)
+        private bool GetFile(FileStream aoOutFileWriteBinary, TcpListener aoClientDataListener, Socket aoClientSocket, bool abPassiveMode, ref int aiError, long alStartIndex, bool abBinaryMode, ref int aiTimeOutUser)
         {
-            bool retour = false;
-            TcpClient client;
-            Byte[] MyBytes = new Byte[BLOCK_SIZE];
-            Socket MySocket;
-            bool blockingState = ClientSocket.Blocking;
-            System.Net.Sockets.SocketError errorSocket = new System.Net.Sockets.SocketError();
-            int size = MyBytes.Length;
-            int nbBytes = 0;
-            String Line;
+            bool lbRetour = false;
+            TcpClient loClient;
+            Byte[] laMyBytes = new Byte[BLOCK_SIZE];
+            Socket loMySocket;
+            bool lbBlockingState = aoClientSocket.Blocking;
+            System.Net.Sockets.SocketError loErrorSocket = new System.Net.Sockets.SocketError();
+            int liSize = laMyBytes.Length;
+            int liNbBytes = 0;
+            String lsLine;
 
+            aiError = SUCCESS;
 
-            error = 0;
+            aoClientSocket.Blocking = false;
 
             try
             {
-                if (PassiveMode == true)
+                if (alStartIndex > 0)
                 {
-                    client = ClientDataListener.AcceptTcpClient();
-                    MySocket = client.Client;
+                    aoOutFileWriteBinary.Seek(alStartIndex, SeekOrigin.Begin);
+                }
+
+                if (abPassiveMode == true)
+                {
+                    loClient = aoClientDataListener.AcceptTcpClient();
+                    loMySocket = loClient.Client;
                 }
                 else
                 {
-                    MySocket = ClientSocket;
+                    loMySocket = aoClientSocket;
                 }
 
-                MySocket.Blocking = false;
+                loMySocket.Blocking = false;
 
                 do
                 {
-                    nbBytes = MySocket.Receive(MyBytes, 0, MyBytes.Length, SocketFlags.None, out errorSocket);
+                    liNbBytes = loMySocket.Receive(laMyBytes, 0, laMyBytes.Length, SocketFlags.None, out loErrorSocket);
 
-                    if (nbBytes == 0)
+                    if (liNbBytes == 0)
                     {
-                        if (errorSocket != System.Net.Sockets.SocketError.WouldBlock)
+                        if (loErrorSocket != System.Net.Sockets.SocketError.WouldBlock)
                         {
                             /* Connection close */
-                            retour = true;
+                            lbRetour = true;
                             break;
                         }
                         else
                         {
-                            Thread.Sleep(1000);
-                            TimeOutUser--;
+                            Thread.Sleep(WAITING_TIME);
+                            aiTimeOutUser--;
 
-                            if (TimeOutUser == 0)
+                            if (aiTimeOutUser == 0)
                             {
                                 break;
                             }
@@ -2168,48 +2778,249 @@ namespace ConsoleApplication1
                     }
                     else
                     {
-                        if (BinaryMode == false)
+                        if (abBinaryMode == false)
                         {
-                            Line = WindowsEncoding.GetString(MyBytes);
-                            Line = Line.Replace("\r\n", Environment.NewLine);
+                            lsLine = poWindowsEncoding.GetString(laMyBytes);
+                            lsLine = lsLine.Replace("\r\n", Environment.NewLine);
 
-                            if (Line.EndsWith("\r") == true)
+                            /* when can split \r\n when read block */
+                            if (lsLine.EndsWith("\r") == true)
                             {
-                                Line = Line.Substring(0, Line.Length - 1) + Environment.NewLine;
+                                lsLine = lsLine.Substring(0, lsLine.Length - 1) + Environment.NewLine;
                             }
 
-                            if (Line.StartsWith("\n") == true)
+                            if (lsLine.StartsWith("\n") == true)
                             {
-                                Line = Line.Substring(1);
+                                lsLine = lsLine.Substring(1);
                             }
 
-                            MyBytes = WindowsEncoding.GetBytes(Line);
+                            laMyBytes = poWindowsEncoding.GetBytes(lsLine);
                         }
 
                         try
                         {
-                            outFileWriteBinary.Write(MyBytes, 0, nbBytes);
+                            aoOutFileWriteBinary.Write(laMyBytes, 0, liNbBytes);
                         }
                         catch
                         {
-                            error = 6;
+                            aiError = NO_ENOUGH_SPACE;
                             break;
                         }
 
                         /* Reinit time out */
-                        TimeOutUser = this.TimeOut;
+                        aiTimeOutUser = piTimeOut;
                     }
                 }
-                while (TimeOutUser > 0);
-
-                return retour;                
+                while (aiTimeOutUser > 0);
             }
             catch
             {
-                error = 1;
+                aiError = CANT_OPEN_DATA_CONNECTION;
             }
 
-            return retour;
+            aoClientSocket.Blocking = lbBlockingState;
+
+            return lbRetour;
+        }
+
+        /*
+         * <summary>Send modification time of a file</summary>
+		 *
+         * <remarks></remarks>
+		 *
+         * <param name="asLocalFileName">file to get last write time</param>
+         * <param name="asResult">result of command</param>
+         * <param name="aiError">0 -> no error, see ShowError() for more detail</param>
+		 *
+         * <returns>no return</returns>
+		 *
+         * <history>
+         * - 06/07/2008 : rename variable name
+         * <history>
+         */
+        private bool CommandMDTM(String asLocalFileName, ref String asResult, ref int aiError)
+        {
+            DateTime loFdt = File.GetLastWriteTime(asLocalFileName);
+            bool lbRetour = false;
+
+            asResult = "";
+
+            if (File.Exists(asLocalFileName) == true)
+            {
+                aiError = SUCCESS;
+                lbRetour = true;                
+                asResult = loFdt.ToString("yyyyMMddHHmmss");
+            }
+            else
+            {
+                aiError = FILE_NOT_FOUND;
+            }
+
+            return lbRetour;
+        }
+
+        /*
+         * <summary>Send size of a file</summary>
+		 *
+         * <remarks></remarks>
+		 *
+         * <param name="asLocalFileName">file to get last write time</param>
+         * <param name="asResult">result of command (size of file)</param>
+         * <param name="aiError">0 -> no error, see ShowError() for more detail</param>
+		 *
+         * <returns>no return</returns>
+		 *
+         * <history>
+         * - 06/07/2008 : rename variable name,
+         * - 10/07/2008 : use String.Empty,
+         * <history>
+         */
+        private bool CommandSIZE(String asLocalFileName, ref String asResult, ref int aiError)
+        {
+            FileInfo loFi;
+            bool lbRetour = false;
+
+            asResult = String.Empty;
+
+            if (File.Exists(asLocalFileName) == true)
+            {
+                aiError = SUCCESS;
+                lbRetour = true;
+                loFi = new FileInfo(asLocalFileName);
+                asResult = loFi.Length.ToString();
+            }
+            else
+            {
+                aiError = FILE_NOT_FOUND;
+            }
+
+            return lbRetour;
+        }
+
+        /*
+         * <summary>Modify time of file</summary>
+		 *
+         * <remarks></remarks>
+		 *
+         * <param name="asLocalFileName">file to get last write time</param>
+         * <param name="asFDateTime">new date/time of last write access</param>
+         * <param name="aiError">0 -> no error, see ShowError() for more detail</param>
+		 *
+         * <returns>no return</returns>
+		 *
+         * <history>
+         * - 06/07/2008 : rename variable name
+         * <history>
+         */
+        private bool CommandMFMT(String asLocalFileName, String asFDateTime, ref int aiError)
+        {
+            String lsYear;
+            String lsMonth;
+            String lsDay;
+            String lsHour;
+            String lsMinute;
+            String lsSeconde;
+            bool lbRetour = false;
+
+            aiError = SYNTAX_ERROR;
+
+            if (File.Exists(asLocalFileName) == true)
+            {
+                if (asFDateTime.Length == 14)
+                {
+                    lsYear = asFDateTime.Substring(0, 4);
+                    lsMonth = asFDateTime.Substring(4, 2);
+                    lsDay = asFDateTime.Substring(6, 2);
+                    lsHour = asFDateTime.Substring(8, 2);
+                    lsMinute = asFDateTime.Substring(10, 2);
+                    lsSeconde = asFDateTime.Substring(12, 2);
+
+                    try
+                    {
+                        File.SetLastWriteTime(asLocalFileName, new DateTime(int.Parse(lsYear), int.Parse(lsMonth), int.Parse(lsDay), int.Parse(lsHour), int.Parse(lsMinute), int.Parse(lsSeconde)));
+
+						aiError = 0;
+						
+                        lbRetour = true;
+                    }
+                    catch
+                    {
+                        aiError = NOT_VALID_DATE;
+                    }
+                }
+            }
+            else
+            {
+                aiError = FILE_NOT_FOUND;
+            }
+
+            return lbRetour;
+        }
+
+        /*
+         * <summary>Rename file or directory</summary>
+		 *
+         * <remarks></remarks>
+		 *
+         * <param name="asLocalFileNameFrom">file to rename</param>
+         * <param name="asLocalFileNameTo">new name</param>
+         * <param name="aiError">0 -> no error, see ShowError() for more detail</param>
+		 *
+         * <returns>true if success</returns>
+		 *
+         * <history>
+         * - 06/07/2008 : rename variable name
+         * <history>
+         */
+        private bool RenameFileOrDirectory(String asLocalFileNameFrom, String asLocalFileNameTo, ref int aiError, ref bool abDirectory)
+        {
+            bool lbRetour = false;
+
+            abDirectory = false;
+
+            if (File.Exists(asLocalFileNameFrom) == true)
+            {
+                try
+                {
+                    File.Move(asLocalFileNameFrom, asLocalFileNameTo);
+
+                    aiError = SUCCESS;
+                    lbRetour = true;
+                }
+                catch (IOException)
+                {
+                    aiError = FILE_ALREADY_EXIST;
+                }
+                catch
+                {
+                    aiError = ACCES_DENIED;
+                }
+            }
+            else if (Directory.Exists(asLocalFileNameFrom) == true)
+            {
+                try
+                {
+                    Directory.Move(asLocalFileNameFrom, asLocalFileNameTo);
+
+                    aiError = SUCCESS;
+                    lbRetour = true;
+                    abDirectory = true;
+                }
+                catch (IOException)
+                {
+                    aiError = FILE_ALREADY_EXIST;
+                }
+                catch
+                {
+                    aiError = ACCES_DENIED;
+                }
+            }
+            else
+            {
+                aiError = FILE_NOT_FOUND;
+            }
+
+            return lbRetour;
         }
     }
 }

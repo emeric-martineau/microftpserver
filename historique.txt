@@ -1,2 +1,18 @@
-0.1 : (xx/xx/xxxx)
- Initial release
+0.2 : (14/07/2008)
+  GUI :
+    - message when you close and server is running,
+
+  Server
+    - using String.Concat and StringBuilder,
+    - code cleaning,
+    - add better header of function,
+    - rename all variable name to better name,
+    - add RNYO and RNFR command,
+    - add FEAT command
+        - MTDM,
+        - SIZE,
+        - UTF8,
+        - CLNT,
+        - MFMT,
+0.1 : (29/08/2009)
+  Initial release

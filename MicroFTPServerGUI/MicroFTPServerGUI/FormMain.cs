@@ -406,8 +406,11 @@ namespace MicroFTPServeurGUI
         {
             if (ServerRunning == true)
             {
-                MenuStopServer_Click(sender, new EventArgs());
-                ServerProcessus.WaitForExit();
+                if (MessageBox.Show("Serveur is running, would-you like shutdown it ?", "Question", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                {
+                    MenuStopServer_Click(sender, new EventArgs());
+                    ServerProcessus.WaitForExit();
+                }
             }            
         }
 

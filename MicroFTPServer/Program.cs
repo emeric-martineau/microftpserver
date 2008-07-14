@@ -7,7 +7,7 @@ namespace ConsoleApplication1
 {
     class Program
     {
-        static void Log(String Text)
+        static void Log(String asText)
         {
             String CurrentDateTime;
             System.Security.Principal.IPrincipal MyThread = Thread.CurrentPrincipal;
@@ -16,35 +16,35 @@ namespace ConsoleApplication1
 
             lock (MyThread)
             {
-                Console.WriteLine(CurrentDateTime + " - " + Text.TrimEnd());
+                Console.WriteLine(CurrentDateTime + " - " + asText.TrimEnd());
             }
         }
 
-        static void Main(string[] args)
+        static void Main(string[] aaArgs)
         {
-            int i;
-            String RootFile ;
-            ClassFTPServer server;
+            int liIndex;
+            String lsRootFile ;
+            ClassFTPServer loServer;
 
-            Console.WriteLine("MicroFTPServer v0.1");
+            Console.WriteLine("MicroFTPServer v0.2");
 
-            RootFile = System.IO.Directory.GetCurrentDirectory();
+            lsRootFile = System.IO.Directory.GetCurrentDirectory();
 
-            if (args.Length > 1)
+            if (aaArgs.Length > 1)
             {
-                for (i = 0; i < args.Length; i++)
+                for (liIndex = 0; liIndex < aaArgs.Length; liIndex++)
                 {
-                    if (args[i].ToLower() == "-root")
+                    if (aaArgs[liIndex].ToLower() == "-root")
                     {
-                        i++;
-                        RootFile = args[i];
+                        liIndex++;
+                        lsRootFile = aaArgs[liIndex];
                     }
                 }
             }
 
-            server = new ClassFTPServer(RootFile);
-            server.OnLog = Log;
-            server.Start();
+            loServer = new ClassFTPServer(lsRootFile);
+            loServer.OnLog = Log;
+            loServer.Start();
 
             Log("Server terminate");
         }
