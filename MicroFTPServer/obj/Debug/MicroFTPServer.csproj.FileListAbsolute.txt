@@ -8,3 +8,6 @@ C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\Micro
 C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServer\bin\Debug\MicroFTPServer.exe
 C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServer\bin\Debug\MicroFTPServer.pdb
 C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServer\obj\Debug\ResolveAssemblyReference.cache
+E:\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServer\obj\Debug\MicroFTPServer.exe
+E:\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServer\obj\Debug\MicroFTPServer.pdb
+E:\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServer\obj\Debug\ResolveAssemblyReference.cache

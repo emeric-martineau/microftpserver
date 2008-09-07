@@ -1,4 +1,4 @@
-namespace MicroFTPServeurGUI
+namespace MicroFTPServerGUI
 {
     partial class FormUser
     {
@@ -39,6 +39,7 @@ namespace MicroFTPServeurGUI
             this.textBoxRoot = new System.Windows.Forms.TextBox();
             this.buttonRoot = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.checkBoxModify = new System.Windows.Forms.CheckBox();
             this.checkBoxDeleteDirectory = new System.Windows.Forms.CheckBox();
             this.checkBoxMakeDirectory = new System.Windows.Forms.CheckBox();
             this.checkBoxDelete = new System.Windows.Forms.CheckBox();
@@ -52,7 +53,6 @@ namespace MicroFTPServeurGUI
             this.buttonApply = new System.Windows.Forms.Button();
             this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
             this.buttonCopy = new System.Windows.Forms.Button();
-            this.checkBoxModify = new System.Windows.Forms.CheckBox();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -161,6 +161,16 @@ namespace MicroFTPServeurGUI
             this.groupBox1.TabIndex = 9;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Rights";
+            // 
+            // checkBoxModify
+            // 
+            this.checkBoxModify.AutoSize = true;
+            this.checkBoxModify.Location = new System.Drawing.Point(14, 165);
+            this.checkBoxModify.Name = "checkBoxModify";
+            this.checkBoxModify.Size = new System.Drawing.Size(107, 17);
+            this.checkBoxModify.TabIndex = 6;
+            this.checkBoxModify.Text = "Modify time of file";
+            this.checkBoxModify.UseVisualStyleBackColor = true;
             // 
             // checkBoxDeleteDirectory
             // 
@@ -282,16 +292,6 @@ namespace MicroFTPServeurGUI
             this.buttonCopy.UseVisualStyleBackColor = true;
             this.buttonCopy.Click += new System.EventHandler(this.buttonCopy_Click);
             // 
-            // checkBoxModify
-            // 
-            this.checkBoxModify.AutoSize = true;
-            this.checkBoxModify.Location = new System.Drawing.Point(14, 165);
-            this.checkBoxModify.Name = "checkBoxModify";
-            this.checkBoxModify.Size = new System.Drawing.Size(107, 17);
-            this.checkBoxModify.TabIndex = 6;
-            this.checkBoxModify.Text = "Modify time of file";
-            this.checkBoxModify.UseVisualStyleBackColor = true;
-            // 
             // FormUser
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -318,7 +318,7 @@ namespace MicroFTPServeurGUI
             this.MinimizeBox = false;
             this.Name = "FormUser";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "FormUser";
+            this.Text = "Users config";
             this.Load += new System.EventHandler(this.FormUser_Load);
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();

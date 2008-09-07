@@ -27,7 +27,7 @@ Name: "service"; Description: "NT service"; Types: full custom;
 [Files]
 Source: "MicroFTPServer\bin\Debug\MicroFTPServer.exe"; DestDir: "{app}"; Components: program;
 Source: "license.gpl-3.0.txt"; DestDir: "{app}"; Components: program;
-Source: "historique.txt"; DestDir: "{app}"; Components: program;
+Source: "changelog.txt"; DestDir: "{app}"; Components: program;
 Source: "MD5Crypter\MD5Crypter\bin\Debug\MD5Crypter.exe"; DestDir: "{app}"; Components: program; 
 Source: "MicroFTPServerGUI\MicroFTPServerGUI\bin\Debug\MicroFTPServerGUI.exe"; DestDir: "{app}"; Components: program;
 Source: "MicroFTPServerGUI\GUIConfig.ini"; DestDir: "{app}"; Components: program;

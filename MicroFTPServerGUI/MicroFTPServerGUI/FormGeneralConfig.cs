@@ -1,5 +1,5 @@
 /*
- * µLeechFTPServer
+ * MicroFTPServer
  * 
  * A little FTP server in .Net technologie
  * 
@@ -28,7 +28,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.IO;
 
-namespace MicroFTPServeurGUI
+namespace MicroFTPServerGUI
 {
     public partial class FormGeneralConfig : Form
     {
@@ -76,7 +76,7 @@ namespace MicroFTPServeurGUI
 
             numericUpDownClient.Value = value;
 
-            checkBoxFullLog.Checked = (Ini.GetValue("main", "FullLog").ToLower() == "yes");
+            checkBoxFullLog.Checked = Ini.GetValue("main", "FullLog").Equals("yes", StringComparison.OrdinalIgnoreCase) ;
 
             tmp = Ini.GetValue("main", "TimeOut");
 
@@ -88,6 +88,8 @@ namespace MicroFTPServeurGUI
             numericUpDownTimeOut.Value = value;
 
             textBoxPassivePort.Text = Ini.GetValue("main", "PassivePort");
+
+            checkBoxDenyPriority.Checked = Ini.GetValue("main", "DenyPriority").Equals("yes", StringComparison.OrdinalIgnoreCase);
 
             textBoxAllowIP.Text = Ini.GetValue("main", "AllowIPAddress");
             textBoxDenyIP.Text = Ini.GetValue("main", "DenyIPAddress");
@@ -102,18 +104,30 @@ namespace MicroFTPServeurGUI
                 sw.WriteLine("[main]");
                 sw.WriteLine("Port=" + numericUpDownPort.Value);
                 sw.WriteLine("; IP Address or host name");
+                sw.WriteLine("");
                 sw.WriteLine("IpAddress=" + textBoxIPAddress.Text);
+                sw.WriteLine("");
                 sw.WriteLine("WelcomeMessage=\"" + textBoxWelcomeMessage.Text.Replace(Environment.NewLine, "\\n") + "\"");
+                sw.WriteLine("");
                 sw.WriteLine("; -1 for unlimited");
                 sw.WriteLine("MaxSessionPerUser=" + numericUpDownUser.Value);
+                sw.WriteLine("");
                 sw.WriteLine("; 0 for unlimited");
                 sw.WriteLine("MaxClient=" + numericUpDownClient.Value);
+                sw.WriteLine("");
                 sw.WriteLine("; Yes = enabled full log, No = disabled");
                 sw.WriteLine("FullLog=" + (checkBoxFullLog.Checked == true ? "yes" : "no"));
+                sw.WriteLine("");
                 sw.WriteLine("; time-out in seconds. 0 = disabled");
                 sw.WriteLine("TimeOut=" + numericUpDownTimeOut.Value);
+                sw.WriteLine("");
                 sw.WriteLine("; Passive port range xxx-yyy");
                 sw.WriteLine("PassivePort=" + textBoxPassivePort.Text);
+                sw.WriteLine("");
+                sw.WriteLine("; yes = deny address are priority on allowed address.") ;
+                sw.WriteLine("; if you want deny allow address except an IP set no") ;
+                sw.WriteLine("DenyPriority=" + (checkBoxDenyPriority.Checked == true ? "yes" : "no"));
+                sw.WriteLine("") ;
                 sw.WriteLine("; Allow IP. ? -> replace one caractere, * -> replace a number.");
                 sw.WriteLine("; Separe IP by comma (,)");
                 sw.WriteLine("; Empty to disable");

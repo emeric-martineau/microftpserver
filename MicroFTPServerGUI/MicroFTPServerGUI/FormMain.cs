@@ -1,5 +1,5 @@
 /*
- * µLeechFTPServer
+ * MicroFTPServer
  * 
  * A little FTP server in .Net technologie
  * 
@@ -19,13 +19,6 @@
  * with this program; if not, write to the Free Software Foundation, Inc., 59
  * Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  */
-
-/*
- * TODO :
- *         private bool HideSystray ;
- *         private bool LaunchAtStartup ;
- *         fermer serveur si quitte l'application
- */
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -37,7 +30,7 @@ using System.IO;
 using System.Diagnostics;
 using System.Threading;
 
-namespace MicroFTPServeurGUI
+namespace MicroFTPServerGUI
 {
     public partial class FormMain : Form
     {
@@ -476,6 +469,13 @@ namespace MicroFTPServeurGUI
 
                 ShowInNotifyIcon();
             }
+        }
+
+        private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            FormAbout fa = new FormAbout();
+
+            fa.ShowDialog();
         }
     }
 }

@@ -1,4 +1,4 @@
-namespace MicroFTPServeurGUI
+namespace MicroFTPServerGUI
 {
     partial class FormGUISetting
     {

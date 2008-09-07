@@ -1,4 +1,4 @@
-namespace MicroFTPServeurGUI
+namespace MicroFTPServerGUI
 {
     partial class FormGeneralConfig
     {
@@ -49,6 +49,10 @@ namespace MicroFTPServeurGUI
             this.textBoxDenyIP = new System.Windows.Forms.TextBox();
             this.buttonOK = new System.Windows.Forms.Button();
             this.buttonCancel = new System.Windows.Forms.Button();
+            this.checkBoxDenyPriority = new System.Windows.Forms.CheckBox();
+            this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.label9 = new System.Windows.Forms.Label();
+            this.groupBox2 = new System.Windows.Forms.GroupBox();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownPort)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownUser)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownClient)).BeginInit();
@@ -113,7 +117,7 @@ namespace MicroFTPServeurGUI
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(12, 183);
+            this.label3.Location = new System.Drawing.Point(294, 9);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(190, 13);
             this.label3.TabIndex = 6;
@@ -121,7 +125,7 @@ namespace MicroFTPServeurGUI
             // 
             // numericUpDownUser
             // 
-            this.numericUpDownUser.Location = new System.Drawing.Point(16, 199);
+            this.numericUpDownUser.Location = new System.Drawing.Point(298, 25);
             this.numericUpDownUser.Maximum = new decimal(new int[] {
             -402653185,
             -1613725636,
@@ -134,7 +138,7 @@ namespace MicroFTPServeurGUI
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(13, 222);
+            this.label4.Location = new System.Drawing.Point(295, 48);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(139, 13);
             this.label4.TabIndex = 8;
@@ -142,7 +146,7 @@ namespace MicroFTPServeurGUI
             // 
             // numericUpDownClient
             // 
-            this.numericUpDownClient.Location = new System.Drawing.Point(16, 238);
+            this.numericUpDownClient.Location = new System.Drawing.Point(298, 64);
             this.numericUpDownClient.Maximum = new decimal(new int[] {
             -402653185,
             -1613725636,
@@ -155,7 +159,7 @@ namespace MicroFTPServeurGUI
             // checkBoxFullLog
             // 
             this.checkBoxFullLog.AutoSize = true;
-            this.checkBoxFullLog.Location = new System.Drawing.Point(16, 264);
+            this.checkBoxFullLog.Location = new System.Drawing.Point(298, 90);
             this.checkBoxFullLog.Name = "checkBoxFullLog";
             this.checkBoxFullLog.Size = new System.Drawing.Size(59, 17);
             this.checkBoxFullLog.TabIndex = 10;
@@ -165,7 +169,7 @@ namespace MicroFTPServeurGUI
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(13, 284);
+            this.label5.Location = new System.Drawing.Point(295, 110);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(54, 13);
             this.label5.TabIndex = 11;
@@ -173,7 +177,7 @@ namespace MicroFTPServeurGUI
             // 
             // numericUpDownTimeOut
             // 
-            this.numericUpDownTimeOut.Location = new System.Drawing.Point(15, 300);
+            this.numericUpDownTimeOut.Location = new System.Drawing.Point(297, 126);
             this.numericUpDownTimeOut.Name = "numericUpDownTimeOut";
             this.numericUpDownTimeOut.Size = new System.Drawing.Size(100, 20);
             this.numericUpDownTimeOut.TabIndex = 12;
@@ -181,7 +185,7 @@ namespace MicroFTPServeurGUI
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(13, 323);
+            this.label6.Location = new System.Drawing.Point(295, 149);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(126, 13);
             this.label6.TabIndex = 13;
@@ -189,7 +193,7 @@ namespace MicroFTPServeurGUI
             // 
             // textBoxPassivePort
             // 
-            this.textBoxPassivePort.Location = new System.Drawing.Point(15, 339);
+            this.textBoxPassivePort.Location = new System.Drawing.Point(297, 165);
             this.textBoxPassivePort.Name = "textBoxPassivePort";
             this.textBoxPassivePort.Size = new System.Drawing.Size(100, 20);
             this.textBoxPassivePort.TabIndex = 14;
@@ -198,7 +202,7 @@ namespace MicroFTPServeurGUI
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(13, 362);
+            this.label7.Location = new System.Drawing.Point(295, 188);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(236, 13);
             this.label7.TabIndex = 15;
@@ -206,7 +210,7 @@ namespace MicroFTPServeurGUI
             // 
             // textBoxAllowIP
             // 
-            this.textBoxAllowIP.Location = new System.Drawing.Point(15, 378);
+            this.textBoxAllowIP.Location = new System.Drawing.Point(297, 204);
             this.textBoxAllowIP.Name = "textBoxAllowIP";
             this.textBoxAllowIP.Size = new System.Drawing.Size(100, 20);
             this.textBoxAllowIP.TabIndex = 16;
@@ -214,7 +218,7 @@ namespace MicroFTPServeurGUI
             // label8
             // 
             this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(13, 401);
+            this.label8.Location = new System.Drawing.Point(295, 227);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(236, 13);
             this.label8.TabIndex = 17;
@@ -222,7 +226,7 @@ namespace MicroFTPServeurGUI
             // 
             // textBoxDenyIP
             // 
-            this.textBoxDenyIP.Location = new System.Drawing.Point(15, 417);
+            this.textBoxDenyIP.Location = new System.Drawing.Point(297, 243);
             this.textBoxDenyIP.Name = "textBoxDenyIP";
             this.textBoxDenyIP.Size = new System.Drawing.Size(100, 20);
             this.textBoxDenyIP.TabIndex = 18;
@@ -230,7 +234,7 @@ namespace MicroFTPServeurGUI
             // buttonOK
             // 
             this.buttonOK.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.buttonOK.Location = new System.Drawing.Point(15, 450);
+            this.buttonOK.Location = new System.Drawing.Point(15, 353);
             this.buttonOK.Name = "buttonOK";
             this.buttonOK.Size = new System.Drawing.Size(75, 23);
             this.buttonOK.TabIndex = 19;
@@ -241,18 +245,57 @@ namespace MicroFTPServeurGUI
             // buttonCancel
             // 
             this.buttonCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.buttonCancel.Location = new System.Drawing.Point(205, 450);
+            this.buttonCancel.Location = new System.Drawing.Point(461, 353);
             this.buttonCancel.Name = "buttonCancel";
             this.buttonCancel.Size = new System.Drawing.Size(75, 23);
             this.buttonCancel.TabIndex = 20;
             this.buttonCancel.Text = "Cancel";
             this.buttonCancel.UseVisualStyleBackColor = true;
             // 
+            // checkBoxDenyPriority
+            // 
+            this.checkBoxDenyPriority.AutoSize = true;
+            this.checkBoxDenyPriority.Location = new System.Drawing.Point(298, 274);
+            this.checkBoxDenyPriority.Name = "checkBoxDenyPriority";
+            this.checkBoxDenyPriority.Size = new System.Drawing.Size(115, 17);
+            this.checkBoxDenyPriority.TabIndex = 21;
+            this.checkBoxDenyPriority.Text = "Deny IP are priotity";
+            this.checkBoxDenyPriority.UseVisualStyleBackColor = true;
+            // 
+            // groupBox1
+            // 
+            this.groupBox1.Location = new System.Drawing.Point(286, 9);
+            this.groupBox1.Name = "groupBox1";
+            this.groupBox1.Size = new System.Drawing.Size(2, 330);
+            this.groupBox1.TabIndex = 22;
+            this.groupBox1.TabStop = false;
+            // 
+            // label9
+            // 
+            this.label9.Location = new System.Drawing.Point(314, 294);
+            this.label9.Name = "label9";
+            this.label9.Size = new System.Drawing.Size(217, 45);
+            this.label9.TabIndex = 23;
+            this.label9.Text = "Unckeck it, for exemple, if you want deny all IP address (*.*.*.*) except allow I" +
+                "P (192.168.1.*)";
+            // 
+            // groupBox2
+            // 
+            this.groupBox2.Location = new System.Drawing.Point(15, 345);
+            this.groupBox2.Name = "groupBox2";
+            this.groupBox2.Size = new System.Drawing.Size(521, 2);
+            this.groupBox2.TabIndex = 24;
+            this.groupBox2.TabStop = false;
+            // 
             // FormGeneralConfig
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(292, 479);
+            this.ClientSize = new System.Drawing.Size(548, 386);
+            this.Controls.Add(this.groupBox2);
+            this.Controls.Add(this.label9);
+            this.Controls.Add(this.groupBox1);
+            this.Controls.Add(this.checkBoxDenyPriority);
             this.Controls.Add(this.buttonCancel);
             this.Controls.Add(this.buttonOK);
             this.Controls.Add(this.textBoxDenyIP);
@@ -279,7 +322,7 @@ namespace MicroFTPServeurGUI
             this.MinimizeBox = false;
             this.Name = "FormGeneralConfig";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "Form1";
+            this.Text = "General config";
             this.Load += new System.EventHandler(this.FormGeneralConfig_Load);
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownPort)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownUser)).EndInit();
@@ -313,5 +356,9 @@ namespace MicroFTPServeurGUI
         private System.Windows.Forms.TextBox textBoxDenyIP;
         private System.Windows.Forms.Button buttonOK;
         private System.Windows.Forms.Button buttonCancel;
+        private System.Windows.Forms.CheckBox checkBoxDenyPriority;
+        private System.Windows.Forms.GroupBox groupBox1;
+        private System.Windows.Forms.Label label9;
+        private System.Windows.Forms.GroupBox groupBox2;
     }
 }

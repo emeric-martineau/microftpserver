@@ -1,0 +1,14 @@
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServerGUI\MicroFTPServerGUI\bin\Debug\MicroFTPServerGUI.exe
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServerGUI\MicroFTPServerGUI\bin\Debug\MicroFTPServerGUI.pdb
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServerGUI\MicroFTPServerGUI\obj\Debug\ResolveAssemblyReference.cache
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServerGUI\MicroFTPServerGUI\obj\Debug\MicroFTPServerGUI.Properties.Resources.resources
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServerGUI\MicroFTPServerGUI\obj\Debug\MicroFTPServerGUI.csproj.GenerateResource.Cache
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServerGUI\MicroFTPServerGUI\obj\Debug\MicroFTPServerGUI.exe
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServerGUI\MicroFTPServerGUI\obj\Debug\MicroFTPServerGUI.pdb
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServerGUI\MicroFTPServerGUI\obj\Debug\MicroFTPServerGUI.FormAbout.resources
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServerGUI\MicroFTPServerGUI\obj\Debug\MicroFTPServerGUI.FormAlreadyRunning.resources
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServerGUI\MicroFTPServerGUI\obj\Debug\MicroFTPServerGUI.FormCopy.resources
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServerGUI\MicroFTPServerGUI\obj\Debug\MicroFTPServerGUI.FormGeneralConfig.resources
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServerGUI\MicroFTPServerGUI\obj\Debug\MicroFTPServerGUI.FormGUISetting.resources
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServerGUI\MicroFTPServerGUI\obj\Debug\MicroFTPServerGUI.FormMain.resources
+C:\Documents and Settings\Emeric\Mes documents\Visual Studio 2008\Projects\MicroFTPServer\MicroFTPServerGUI\MicroFTPServerGUI\obj\Debug\MicroFTPServerGUI.FormUser.resources

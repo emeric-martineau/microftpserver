@@ -1,5 +1,5 @@
 /*
- * µLeechFTPServer
+ * MicroFTPServer
  * 
  * A little FTP server in .Net technologie
  * 
@@ -28,7 +28,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.IO;
 
-namespace MicroFTPServeurGUI
+namespace MicroFTPServerGUI
 {
     public partial class FormGUISetting : Form
     {

@@ -1,4 +1,4 @@
-namespace MicroFTPServeurGUI
+namespace MicroFTPServerGUI
 {
     partial class FormMain
     {
@@ -56,6 +56,7 @@ namespace MicroFTPServeurGUI
             this.ContextMenuShow = new System.Windows.Forms.ToolStripMenuItem();
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
             this.backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
+            this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip1.SuspendLayout();
             this.menuStrip1.SuspendLayout();
             this.ContextMenuNotify.SuspendLayout();
@@ -81,7 +82,8 @@ namespace MicroFTPServeurGUI
             // 
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.MenuServer,
-            this.configToolStripMenuItem});
+            this.configToolStripMenuItem,
+            this.aboutToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
             this.menuStrip1.RenderMode = System.Windows.Forms.ToolStripRenderMode.System;
@@ -101,51 +103,51 @@ namespace MicroFTPServeurGUI
             this.exitToolStripMenuItem});
             this.MenuServer.Name = "MenuServer";
             this.MenuServer.Size = new System.Drawing.Size(51, 20);
-            this.MenuServer.Text = "Server";
+            this.MenuServer.Text = "&Server";
             // 
             // MenuStartServer
             // 
             this.MenuStartServer.Name = "MenuStartServer";
-            this.MenuStartServer.Size = new System.Drawing.Size(126, 22);
-            this.MenuStartServer.Text = "Start";
+            this.MenuStartServer.Size = new System.Drawing.Size(152, 22);
+            this.MenuStartServer.Text = "&Start";
             this.MenuStartServer.Click += new System.EventHandler(this.MenuStartServer_Click);
             // 
             // MenuRestartServer
             // 
             this.MenuRestartServer.Name = "MenuRestartServer";
-            this.MenuRestartServer.Size = new System.Drawing.Size(126, 22);
-            this.MenuRestartServer.Text = "Restart";
+            this.MenuRestartServer.Size = new System.Drawing.Size(152, 22);
+            this.MenuRestartServer.Text = "&Restart";
             this.MenuRestartServer.Click += new System.EventHandler(this.MenuRestartServer_Click);
             // 
             // MenuStopServer
             // 
             this.MenuStopServer.Name = "MenuStopServer";
-            this.MenuStopServer.Size = new System.Drawing.Size(126, 22);
-            this.MenuStopServer.Text = "Stop";
+            this.MenuStopServer.Size = new System.Drawing.Size(152, 22);
+            this.MenuStopServer.Text = "S&top";
             this.MenuStopServer.Click += new System.EventHandler(this.MenuStopServer_Click);
             // 
             // toolStripMenuItem2
             // 
             this.toolStripMenuItem2.Name = "toolStripMenuItem2";
-            this.toolStripMenuItem2.Size = new System.Drawing.Size(123, 6);
+            this.toolStripMenuItem2.Size = new System.Drawing.Size(149, 6);
             // 
             // saveLogToolStripMenuItem
             // 
             this.saveLogToolStripMenuItem.Name = "saveLogToolStripMenuItem";
-            this.saveLogToolStripMenuItem.Size = new System.Drawing.Size(126, 22);
-            this.saveLogToolStripMenuItem.Text = "Save log";
+            this.saveLogToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.saveLogToolStripMenuItem.Text = "Save& log";
             this.saveLogToolStripMenuItem.Click += new System.EventHandler(this.saveLogToolStripMenuItem_Click);
             // 
             // toolStripMenuItem3
             // 
             this.toolStripMenuItem3.Name = "toolStripMenuItem3";
-            this.toolStripMenuItem3.Size = new System.Drawing.Size(123, 6);
+            this.toolStripMenuItem3.Size = new System.Drawing.Size(149, 6);
             // 
             // exitToolStripMenuItem
             // 
             this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(126, 22);
-            this.exitToolStripMenuItem.Text = "Exit";
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.exitToolStripMenuItem.Text = "&Exit";
             this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
             // 
             // configToolStripMenuItem
@@ -156,27 +158,27 @@ namespace MicroFTPServeurGUI
             this.usersConfigToolStripMenuItem});
             this.configToolStripMenuItem.Name = "configToolStripMenuItem";
             this.configToolStripMenuItem.Size = new System.Drawing.Size(50, 20);
-            this.configToolStripMenuItem.Text = "Config";
+            this.configToolStripMenuItem.Text = "&Config";
             // 
             // gUIConfigToolStripMenuItem
             // 
             this.gUIConfigToolStripMenuItem.Name = "gUIConfigToolStripMenuItem";
             this.gUIConfigToolStripMenuItem.Size = new System.Drawing.Size(156, 22);
-            this.gUIConfigToolStripMenuItem.Text = "GUI Config";
+            this.gUIConfigToolStripMenuItem.Text = "&GUI Config";
             this.gUIConfigToolStripMenuItem.Click += new System.EventHandler(this.gUIConfigToolStripMenuItem_Click);
             // 
             // MenuGeneralConfig
             // 
             this.MenuGeneralConfig.Name = "MenuGeneralConfig";
             this.MenuGeneralConfig.Size = new System.Drawing.Size(156, 22);
-            this.MenuGeneralConfig.Text = "General Config";
+            this.MenuGeneralConfig.Text = "G&eneral Config";
             this.MenuGeneralConfig.Click += new System.EventHandler(this.MenuGeneralConfig_Click);
             // 
             // usersConfigToolStripMenuItem
             // 
             this.usersConfigToolStripMenuItem.Name = "usersConfigToolStripMenuItem";
             this.usersConfigToolStripMenuItem.Size = new System.Drawing.Size(156, 22);
-            this.usersConfigToolStripMenuItem.Text = "Users Config";
+            this.usersConfigToolStripMenuItem.Text = "&Users Config";
             this.usersConfigToolStripMenuItem.Click += new System.EventHandler(this.usersConfigToolStripMenuItem_Click);
             // 
             // imageList1
@@ -258,6 +260,13 @@ namespace MicroFTPServeurGUI
             this.backgroundWorker1.DoWork += new System.ComponentModel.DoWorkEventHandler(this.backgroundWorker1_DoWork);
             this.backgroundWorker1.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.backgroundWorker1_ProgressChanged);
             // 
+            // aboutToolStripMenuItem
+            // 
+            this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
+            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(48, 20);
+            this.aboutToolStripMenuItem.Text = "&About";
+            this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
+            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -311,6 +320,7 @@ namespace MicroFTPServeurGUI
         private System.ComponentModel.BackgroundWorker backgroundWorker1;
         private System.Windows.Forms.ToolStripSeparator toolStripMenuItem3;
         private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
     }
 }
 

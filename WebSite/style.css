@@ -1,0 +1,39 @@
+.niveau1
+{
+    margin-left : 20px ;
+}
+
+h1
+{
+    margin-left : 20px ;
+	color: #68892F;
+}
+
+h2
+{
+    margin-left : 40px ;
+	color: #5A7AC7;
+}
+
+h3
+{
+    margin-left : 60px ;
+	color: #837969;
+}
+
+ul
+{
+    margin-left : 60px ;
+}
+
+.description {
+    background-color: #F0FADE;
+	margin-left : 20px ;
+	border-color: #DBEAC1;
+	border-width: 1px;
+	border-style: solid;
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;
+    padding-left: 0.5em;
+    padding-right: 0.5em	
+}
