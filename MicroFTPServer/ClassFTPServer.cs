@@ -177,6 +177,8 @@ namespace ConsoleApplication1
         private Encoding poWindowsEncoding = Encoding.GetEncoding(1252);
         /* Order of deny/allow */
         private bool pbDenyPriority = true;
+        /* Goodbye message */
+        private String psGoodbyeMessage = String.Empty;
 
         /*
          * Constante message
@@ -269,6 +271,7 @@ namespace ConsoleApplication1
          * - 06/07/2008 : rename variable name,
          * - 08/07/2008 : user string.Equals(),
          * - 05/09/2008 : add DenyPriority parameter,
+         * - 09/09/2008 : add goodbye message,
          * <history>
          */
         public void Start()
@@ -301,19 +304,25 @@ namespace ConsoleApplication1
 
                             psWelcomeMessage = loGeneralIni.GetValue("main", "WelcomeMessage");
 
-                            psWelcomeMessage = psWelcomeMessage.Replace("\\n", EOL + "220-") ;
-
-                            if (psWelcomeMessage.StartsWith("220-") == false)
+                            if (psWelcomeMessage.Equals(String.Empty) == true)
                             {
-                                psWelcomeMessage = "220-" + psWelcomeMessage;
+                                psWelcomeMessage = String.Concat("220 Welcome to ", Dns.GetHostName());
+                            }
+                            else
+                            {
+                                psWelcomeMessage = ConvertStringWithEOL(psWelcomeMessage, "220");
                             }
 
-                            if (psWelcomeMessage.EndsWith(EOL) == false)
-                            {
-                                psWelcomeMessage += EOL ;
-                            }
+                            psGoodbyeMessage = loGeneralIni.GetValue("main", "GoodbyeMessage");
 
-                            psWelcomeMessage += "220 ";
+                            if (psGoodbyeMessage.Equals(String.Empty) == true)
+                            {
+                                psGoodbyeMessage = "221 Goodbye.";
+                            }
+                            else
+                            {
+                                psGoodbyeMessage = ConvertStringWithEOL(psGoodbyeMessage, "221");
+                            }
 
                             lsTmp = loGeneralIni.GetValue("main", "MaxSessionPerUser");
 
@@ -801,6 +810,7 @@ namespace ConsoleApplication1
          *                UTF8Command function,
          * - 04/09/2008 : create ModifyFileTimeCommand, FeatCommand, RenameFileFromCommand,
          *                RenameFileToCommand function,
+         * - 09/09/2008 : add goodbye message, add subdir right
          * <history> 
          */
         private void FTPClientThread()
@@ -869,20 +879,15 @@ namespace ConsoleApplication1
             String lsModifyTimeOfFile = String.Empty;
             /* File to rename */
             String lsRenameFrom = String.Empty;
+            /* SubDir right */
+            bool lbSubDir = false;
 
             /* free ClientIP for can start other client */
             poClientIP = null;
 
             lsClientIPAddressString = loMySocket.RemoteEndPoint.ToString();
 
-            if (psWelcomeMessage.Equals(String.Empty) == true)
-            {
-                SendAnswer(loMySocket, String.Concat("220 Welcome to ", Dns.GetHostName()), ref liTimeOutUser);
-            }
-            else
-            {
-                SendAnswer(loMySocket, psWelcomeMessage, ref liTimeOutUser);
-            }
+            SendAnswer(loMySocket, psWelcomeMessage, ref liTimeOutUser);
 
             while (pbCancel == false)
             {
@@ -908,7 +913,7 @@ namespace ConsoleApplication1
 
                             if (lsCmd.Equals("QUIT") == true)
                             {
-                                SendAnswer(loMySocket, "221 Goodbye!", ref liTimeOutUser);
+                                SendAnswer(loMySocket, psGoodbyeMessage, ref liTimeOutUser);
                                 loMySocket.Close();
                                 break;
                             }
@@ -983,19 +988,18 @@ namespace ConsoleApplication1
 
                                         if (lbLogined == false)
                                         {
+                                            lsLogin = String.Empty;
                                             SendAnswer(loMySocket, "530 Login incorrect.", ref liTimeOutUser);
                                         }
                                         else
                                         {
-                                            if (NumberLogin(lsLogin) >= piMaxSessionPerUser)
+                                            if ((NumberLogin(lsLogin) >= piMaxSessionPerUser) && (piMaxSessionPerUser > 0))
                                             {
+                                                lsLogin = String.Empty;
                                                 SendAnswer(loMySocket, String.Concat("530 Sorry, the maximum number of clients (", piMaxSessionPerUser, ") from your login are already connected."), ref liTimeOutUser);
                                             }
                                             else
                                             {
-                                                AddLogin(lsLogin);
-                                                SendAnswer(loMySocket, String.Concat("230 User ", lsLogin, " logged in."), ref liTimeOutUser);
-
                                                 lsUserRoot = loIni.GetValue("user", "Root");
                                                 lsCurrentWorkDir = lsUserRoot;
                                                 lbDownload = loIni.GetValue("user", "Download").Equals("yes", StringComparison.OrdinalIgnoreCase);
@@ -1005,6 +1009,18 @@ namespace ConsoleApplication1
                                                 lbMakeDirectory = loIni.GetValue("user", "MakeDirectory").Equals("yes", StringComparison.OrdinalIgnoreCase);
                                                 lbDeleteDirectory = loIni.GetValue("user", "DeleteDirectory").Equals("yes", StringComparison.OrdinalIgnoreCase);
                                                 lbModifyTime = loIni.GetValue("user", "ModifyTime").Equals("yes", StringComparison.OrdinalIgnoreCase);
+                                                lbSubDir = loIni.GetValue("user", "SubDir").Equals("yes", StringComparison.OrdinalIgnoreCase);
+
+                                                if (System.IO.Directory.Exists(lsUserRoot) == false)
+                                                {
+                                                    lsLogin = String.Empty;
+                                                    SendAnswer(loMySocket, "530 Not  logged in, cannot find home directory.", ref liTimeOutUser);                                                    
+                                                }
+                                                else
+                                                {
+                                                    AddLogin(lsLogin);
+                                                    SendAnswer(loMySocket, String.Concat("230 User ", lsLogin, " logged in."), ref liTimeOutUser);
+                                                }
                                             }
                                         }
                                     }
@@ -1055,7 +1071,7 @@ namespace ConsoleApplication1
                                     {
                                         llResumeIndex = 0;
 
-                                        ListNlstCommand(lsCmd, lsParameter, loClientDataSocket, loClientDataListener, loMySocket, lbPassiveMode, lsUserRoot, lsUserCurrentDirectory, ref liTimeOutUser);
+                                        ListNlstCommand(lsCmd, lsParameter, lbSubDir, loClientDataSocket, loClientDataListener, loMySocket, lbPassiveMode, lsUserRoot, lsUserCurrentDirectory, ref liTimeOutUser);
                                     }
                                     else if (lsCmd.Equals("RETR") == true)
                                     {
@@ -1086,7 +1102,7 @@ namespace ConsoleApplication1
                                     {
                                         llResumeIndex = 0;
 
-                                        ChangeDirectoryCommand(lsCmd, lsUserRoot, ref lsUserCurrentDirectory, ref lsCurrentWorkDir, loMySocket, ref liTimeOutUser);
+                                        ChangeDirectoryCommand(lsCmd, lbSubDir, lsUserRoot, ref lsUserCurrentDirectory, ref lsCurrentWorkDir, loMySocket, ref liTimeOutUser);
                                     }
                                     else if ((lsCmd.Equals("STOR") == true) || (lsCmd.Equals("APPE") == true) || (lsCmd.Equals("STOU") == true))
                                     {
@@ -1146,7 +1162,7 @@ namespace ConsoleApplication1
                                 }
                                 else
                                 {
-                                    SendAnswer(loMySocket, "503 lsLogin with USER first.", ref liTimeOutUser);
+                                    SendAnswer(loMySocket, "503 Login with USER first.", ref liTimeOutUser);
                                 }
                             }
                         }
@@ -1484,6 +1500,7 @@ namespace ConsoleApplication1
          * <remarks></remarks>
          * 
          * <param name="asDirectory">directory to list</param>
+         * <param name="abSubDir">True if user can be show sub dir</param>
          * <param name="aoClientDataListener">passive connection socket</param>
          * <param name="aoClientSocket">active connection socket</param>
          * <param name="abPassiveMode">set true to use passive mode</param>
@@ -1502,7 +1519,7 @@ namespace ConsoleApplication1
          * - 06/07/2008 : add comments,
          * <history>
          */
-        private bool SendListDirectory(String asDirectory, TcpListener aoClientDataListener, Socket aoClientSocket, bool abPassiveMode, ref int aiError, String asRoot, String asUserCurrentDir, ref int aiTimeOutUser, bool abNlst)
+        private bool SendListDirectory(String asDirectory, bool abSubDir, TcpListener aoClientDataListener, Socket aoClientSocket, bool abPassiveMode, ref int aiError, String asRoot, String asUserCurrentDir, ref int aiTimeOutUser, bool abNlst)
         {
             /* Return value */
             bool lbRetour = true;
@@ -1523,7 +1540,7 @@ namespace ConsoleApplication1
             /* Socket error */
             System.Net.Sockets.SocketError loErrorSocket = new System.Net.Sockets.SocketError();
 
-            laMyBytes = poWindowsEncoding.GetBytes(ListDirectory(asDirectory, asUserCurrentDir, asRoot, ref aiError, abNlst));
+            laMyBytes = poWindowsEncoding.GetBytes(ListDirectory(asDirectory, abSubDir, asUserCurrentDir, asRoot, ref aiError, abNlst));
 
             if (aiError == 0)
             {
@@ -1816,6 +1833,7 @@ namespace ConsoleApplication1
          * </remarks>
          * 
          * <param name="asDir">directory name to list</param>
+         * <param name="abSubDir">True if user can be show directory</param>
          * <param name="asUserCurrentDir">user current directory</param>
          * <param name="asRoot">root directory</param>
          * <param name="aiError">return error</param>
@@ -1829,7 +1847,7 @@ namespace ConsoleApplication1
          * - 06/09/2008 : add comments,
          * <history>
          */
-        private String ListDirectory(String asDir, String asUserCurrentDir, String asRoot, ref int aiError, bool abNlst)
+        private String ListDirectory(String asDir, bool abSubDir, String asUserCurrentDir, String asRoot, ref int aiError, bool abNlst)
         {
             /* Loop counter for file and directory list */
             int liIndex;
@@ -1844,22 +1862,26 @@ namespace ConsoleApplication1
             {
                 if (Directory.Exists(lsLocalDir) == true)
                 {
-                    String[] laListOfFile = System.IO.Directory.GetFiles(lsLocalDir, "*.*");
-                    String[] laListOfDirecotry = System.IO.Directory.GetDirectories(lsLocalDir, "*.*");
-
-                    for (liIndex = 0; liIndex < laListOfDirecotry.Length; liIndex++)
+                    if (abSubDir == true)
                     {
-                        if (abNlst == true)
-                        {
-                            loString.Append(laListOfDirecotry[liIndex]);
-                        }
-                        else
-                        {
-                            ListDir(laListOfDirecotry[liIndex], loString);
-                        }
+                        String[] laListOfDirecotry = System.IO.Directory.GetDirectories(lsLocalDir, "*.*");
 
-                        loString.Append(EOL);
+                        for (liIndex = 0; liIndex < laListOfDirecotry.Length; liIndex++)
+                        {
+                            if (abNlst == true)
+                            {
+                                loString.Append(laListOfDirecotry[liIndex]);
+                            }
+                            else
+                            {
+                                ListDir(laListOfDirecotry[liIndex], loString);
+                            }
+
+                            loString.Append(EOL);
+                        }
                     }
+
+                    String[] laListOfFile = System.IO.Directory.GetFiles(lsLocalDir, "*.*");
 
                     for (liIndex = 0; liIndex < laListOfFile.Length; liIndex++)
                     {
@@ -2995,6 +3017,7 @@ namespace ConsoleApplication1
 		 *
          * <param name="asCmd">Command (LIST or NLST)</param>
          * <param name="asParameter">Parameter of command</param>
+         * <param name="abSubDir">True if user can be show sub dir</param>
          * <param name="aoClientDataSocket">Socket client</param>
          * <param name="aoClientDataListener">Passive client listener</param>
          * <param name="aoMySocket">Command socket</param>
@@ -3009,7 +3032,7 @@ namespace ConsoleApplication1
          * - 03/09/2008 : create function
          * <history>
          */
-        private void ListNlstCommand(String asCmd, String asParameter, Socket aoClientDataSocket, TcpListener aoClientDataListener, Socket aoMySocket, bool abPassiveMode, String asUserRoot, String asUserCurrentDirectory, ref int aiTimeOutUser)
+        private void ListNlstCommand(String asCmd, String asParameter, bool abSubDir, Socket aoClientDataSocket, TcpListener aoClientDataListener, Socket aoMySocket, bool abPassiveMode, String asUserRoot, String asUserCurrentDirectory, ref int aiTimeOutUser)
         {
             String lsTmp = String.Empty;
             int aiError = 0;
@@ -3022,7 +3045,7 @@ namespace ConsoleApplication1
 
             SendAnswer(aoMySocket, "150 Opening ASCII mode data connection for /bin/ls.", ref aiTimeOutUser);
 
-            if (SendListDirectory(asParameter, aoClientDataListener, aoClientDataSocket, abPassiveMode, ref aiError, asUserRoot, asUserCurrentDirectory, ref aiTimeOutUser, (asCmd.Equals("NLST"))) == true)
+            if (SendListDirectory(asParameter, abSubDir, aoClientDataListener, aoClientDataSocket, abPassiveMode, ref aiError, asUserRoot, asUserCurrentDirectory, ref aiTimeOutUser, (asCmd.Equals("NLST"))) == true)
             {
                 SendAnswer(aoMySocket, "226 Transfer complete.", ref aiTimeOutUser);
             }
@@ -3141,6 +3164,7 @@ namespace ConsoleApplication1
          * <remarks></remarks>
 		 *
          * <param name="asCmd">Command (CDUP/XCUP)</param>
+         * <param name="abSubDir">True if user can be access to sub dir</param>
          * <param name="asUserRoot">Directory root of user</param>
          * <param name="asUserCurrentDirectory">Current directory of user</param>
          * <param name="asCurrentWorkDir">Current work directory</param>
@@ -3152,27 +3176,34 @@ namespace ConsoleApplication1
          * - 03/09/2008 : create function
          * <history>
          */
-        private void ChangeDirectoryCommand(String asCmd, String asUserRoot, ref String asUserCurrentDirectory, ref String asCurrentWorkDir, Socket aoMySocket, ref int aiTimeOutUser)
+        private void ChangeDirectoryCommand(String asCmd, bool abSubDir, String asUserRoot, ref String asUserCurrentDirectory, ref String asCurrentWorkDir, Socket aoMySocket, ref int aiTimeOutUser)
         {
             /* Directory */
             String lsDirectory = String.Empty;
 
-            if ((asCmd.Equals("CDUP") == true) || (asCmd.Equals("XCUP") == true))
+            if (abSubDir == true)
             {
-                lsDirectory = AddDirSeparatorAtEnd(asUserCurrentDirectory, '/') + "..";
-            }
+                if ((asCmd.Equals("CDUP") == true) || (asCmd.Equals("XCUP") == true))
+                {
+                    lsDirectory = AddDirSeparatorAtEnd(asUserCurrentDirectory, '/') + "..";
+                }
 
-            switch (ChangeDirectory(asUserRoot, lsDirectory, ref asUserCurrentDirectory, ref asCurrentWorkDir))
+                switch (ChangeDirectory(asUserRoot, lsDirectory, ref asUserCurrentDirectory, ref asCurrentWorkDir))
+                {
+                    case 0:
+                        SendAnswer(aoMySocket, "250 CWD command successful.", ref aiTimeOutUser);
+                        break;
+                    case 1:
+                        SendAnswer(aoMySocket, "550 Permission Denied.", ref aiTimeOutUser);
+                        break;
+                    default:
+                        SendAnswer(aoMySocket, String.Concat("550 No such file or directory."), ref aiTimeOutUser);
+                        break;
+                }
+            }
+            else
             {
-                case 0:
-                    SendAnswer(aoMySocket, "250 CWD command successful.", ref aiTimeOutUser);
-                    break;
-                case 1:
-                    SendAnswer(aoMySocket, "550 Permission Denied.", ref aiTimeOutUser);
-                    break;
-                default:
-                    SendAnswer(aoMySocket, String.Concat("550 No such file or directory."), ref aiTimeOutUser);
-                    break;
+                SendAnswer(aoMySocket, ERROR_PERMISSION_DENIED, ref aiTimeOutUser);
             }
         }
 
@@ -3566,6 +3597,35 @@ namespace ConsoleApplication1
             {
                 SendAnswer(aoMySocket, ERROR_PERMISSION_DENIED, ref aiTimeOutUser);
             }
+        }
+
+        /*
+         * <summary>Convert string with \n to string for show message</summary>
+		 *
+         * <remarks></remarks>
+		 *
+         * <param name="asText">String</param>
+         * 
+         * <returns>New string</returns>
+		 *
+         * <history>
+         * - 09/09/2008 : create function
+         * <history>
+         */
+        private String ConvertStringWithEOL(String asText, String asPrefixe)
+        {
+            asText = asPrefixe + "-" + asText;
+
+            asText = asText.Replace("\\n", EOL + asPrefixe + "-");
+
+            if (asText.EndsWith(EOL) == false)
+            {
+                asText += EOL;
+            }
+
+            asText += asPrefixe + " ";
+
+            return asText;
         }
     }   
 }

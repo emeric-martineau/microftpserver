@@ -58,6 +58,8 @@ namespace MicroFTPServerGUI
 
             textBoxWelcomeMessage.Text = Ini.GetValue("main", "WelcomeMessage").Replace("\\n", Environment.NewLine);
 
+            textBoxGoodbyeMessage.Text = Ini.GetValue("main", "GoodbyeMessage").Replace("\\n", Environment.NewLine);
+
             tmp = Ini.GetValue("main", "MaxSessionPerUser");
 
             if (int.TryParse(tmp, out value) == false)
@@ -108,8 +110,9 @@ namespace MicroFTPServerGUI
                 sw.WriteLine("IpAddress=" + textBoxIPAddress.Text);
                 sw.WriteLine("");
                 sw.WriteLine("WelcomeMessage=\"" + textBoxWelcomeMessage.Text.Replace(Environment.NewLine, "\\n") + "\"");
+                sw.WriteLine("GoodbyeMessage=\"" + textBoxGoodbyeMessage.Text.Replace(Environment.NewLine, "\\n") + "\"");
                 sw.WriteLine("");
-                sw.WriteLine("; -1 for unlimited");
+                sw.WriteLine("; 0 for unlimited");
                 sw.WriteLine("MaxSessionPerUser=" + numericUpDownUser.Value);
                 sw.WriteLine("");
                 sw.WriteLine("; 0 for unlimited");

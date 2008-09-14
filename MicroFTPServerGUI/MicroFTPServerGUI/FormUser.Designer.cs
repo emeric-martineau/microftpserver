@@ -53,6 +53,7 @@ namespace MicroFTPServerGUI
             this.buttonApply = new System.Windows.Forms.Button();
             this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
             this.buttonCopy = new System.Windows.Forms.Button();
+            this.checkBoxSubDir = new System.Windows.Forms.CheckBox();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -148,6 +149,7 @@ namespace MicroFTPServerGUI
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.checkBoxSubDir);
             this.groupBox1.Controls.Add(this.checkBoxModify);
             this.groupBox1.Controls.Add(this.checkBoxDeleteDirectory);
             this.groupBox1.Controls.Add(this.checkBoxMakeDirectory);
@@ -155,9 +157,9 @@ namespace MicroFTPServerGUI
             this.groupBox1.Controls.Add(this.checkBoxRename);
             this.groupBox1.Controls.Add(this.checkBoxUpload);
             this.groupBox1.Controls.Add(this.checkBoxDownload);
-            this.groupBox1.Location = new System.Drawing.Point(184, 130);
+            this.groupBox1.Location = new System.Drawing.Point(184, 116);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(213, 184);
+            this.groupBox1.Size = new System.Drawing.Size(213, 198);
             this.groupBox1.TabIndex = 9;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Rights";
@@ -165,7 +167,7 @@ namespace MicroFTPServerGUI
             // checkBoxModify
             // 
             this.checkBoxModify.AutoSize = true;
-            this.checkBoxModify.Location = new System.Drawing.Point(14, 165);
+            this.checkBoxModify.Location = new System.Drawing.Point(10, 157);
             this.checkBoxModify.Name = "checkBoxModify";
             this.checkBoxModify.Size = new System.Drawing.Size(107, 17);
             this.checkBoxModify.TabIndex = 6;
@@ -175,7 +177,7 @@ namespace MicroFTPServerGUI
             // checkBoxDeleteDirectory
             // 
             this.checkBoxDeleteDirectory.AutoSize = true;
-            this.checkBoxDeleteDirectory.Location = new System.Drawing.Point(14, 142);
+            this.checkBoxDeleteDirectory.Location = new System.Drawing.Point(10, 134);
             this.checkBoxDeleteDirectory.Name = "checkBoxDeleteDirectory";
             this.checkBoxDeleteDirectory.Size = new System.Drawing.Size(100, 17);
             this.checkBoxDeleteDirectory.TabIndex = 5;
@@ -185,7 +187,7 @@ namespace MicroFTPServerGUI
             // checkBoxMakeDirectory
             // 
             this.checkBoxMakeDirectory.AutoSize = true;
-            this.checkBoxMakeDirectory.Location = new System.Drawing.Point(14, 119);
+            this.checkBoxMakeDirectory.Location = new System.Drawing.Point(10, 111);
             this.checkBoxMakeDirectory.Name = "checkBoxMakeDirectory";
             this.checkBoxMakeDirectory.Size = new System.Drawing.Size(96, 17);
             this.checkBoxMakeDirectory.TabIndex = 4;
@@ -195,7 +197,7 @@ namespace MicroFTPServerGUI
             // checkBoxDelete
             // 
             this.checkBoxDelete.AutoSize = true;
-            this.checkBoxDelete.Location = new System.Drawing.Point(14, 96);
+            this.checkBoxDelete.Location = new System.Drawing.Point(10, 88);
             this.checkBoxDelete.Name = "checkBoxDelete";
             this.checkBoxDelete.Size = new System.Drawing.Size(57, 17);
             this.checkBoxDelete.TabIndex = 3;
@@ -205,7 +207,7 @@ namespace MicroFTPServerGUI
             // checkBoxRename
             // 
             this.checkBoxRename.AutoSize = true;
-            this.checkBoxRename.Location = new System.Drawing.Point(15, 73);
+            this.checkBoxRename.Location = new System.Drawing.Point(11, 65);
             this.checkBoxRename.Name = "checkBoxRename";
             this.checkBoxRename.Size = new System.Drawing.Size(66, 17);
             this.checkBoxRename.TabIndex = 2;
@@ -215,7 +217,7 @@ namespace MicroFTPServerGUI
             // checkBoxUpload
             // 
             this.checkBoxUpload.AutoSize = true;
-            this.checkBoxUpload.Location = new System.Drawing.Point(14, 50);
+            this.checkBoxUpload.Location = new System.Drawing.Point(10, 42);
             this.checkBoxUpload.Name = "checkBoxUpload";
             this.checkBoxUpload.Size = new System.Drawing.Size(60, 17);
             this.checkBoxUpload.TabIndex = 1;
@@ -225,7 +227,7 @@ namespace MicroFTPServerGUI
             // checkBoxDownload
             // 
             this.checkBoxDownload.AutoSize = true;
-            this.checkBoxDownload.Location = new System.Drawing.Point(14, 27);
+            this.checkBoxDownload.Location = new System.Drawing.Point(10, 19);
             this.checkBoxDownload.Name = "checkBoxDownload";
             this.checkBoxDownload.Size = new System.Drawing.Size(74, 17);
             this.checkBoxDownload.TabIndex = 0;
@@ -292,6 +294,16 @@ namespace MicroFTPServerGUI
             this.buttonCopy.UseVisualStyleBackColor = true;
             this.buttonCopy.Click += new System.EventHandler(this.buttonCopy_Click);
             // 
+            // checkBoxSubDir
+            // 
+            this.checkBoxSubDir.AutoSize = true;
+            this.checkBoxSubDir.Location = new System.Drawing.Point(10, 175);
+            this.checkBoxSubDir.Name = "checkBoxSubDir";
+            this.checkBoxSubDir.Size = new System.Drawing.Size(156, 17);
+            this.checkBoxSubDir.TabIndex = 7;
+            this.checkBoxSubDir.Text = "Show/Access sub directory";
+            this.checkBoxSubDir.UseVisualStyleBackColor = true;
+            // 
             // FormUser
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -354,6 +366,7 @@ namespace MicroFTPServerGUI
         private System.Windows.Forms.FolderBrowserDialog folderBrowserDialog1;
         private System.Windows.Forms.Button buttonCopy;
         private System.Windows.Forms.CheckBox checkBoxModify;
+        private System.Windows.Forms.CheckBox checkBoxSubDir;
 
     }
 }

@@ -147,6 +147,7 @@ namespace MicroFTPServerGUI
                 checkBoxRename.Checked = Ini.GetValue("user", "Rename").ToLower() == "yes";
                 checkBoxUpload.Checked = Ini.GetValue("user", "Upload").ToLower() == "yes";
                 checkBoxModify.Checked = Ini.GetValue("user", "ModifyTime").ToLower() == "yes";
+                checkBoxSubDir.Checked = Ini.GetValue("user", "SubDir").ToLower() == "yes";
 
                 if (listView1.SelectedItems[0].Text == "anonymous")
                 {
@@ -191,6 +192,7 @@ namespace MicroFTPServerGUI
                     sw.WriteLine("DeleteDirectory=" + (checkBoxDeleteDirectory.Checked == true ? "yes" : "no")) ;
                     sw.WriteLine("DeleteDirectory=" + (checkBoxDeleteDirectory.Checked == true ? "yes" : "no"));
                     sw.WriteLine("ModifyTime=" + (checkBoxModify.Checked == true ? "yes" : "no"));
+                    sw.WriteLine("SubDir=" + (checkBoxSubDir.Checked == true ? "yes" : "no"));
                     sw.Close();
                 }
                 catch

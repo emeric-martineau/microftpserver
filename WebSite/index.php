@@ -235,7 +235,7 @@ function listerLanguage($dir)
 	   }?>	   
 	   <br />
 	   <br />
-       <a href="server-ftp/historique.txt"><?php echo $changelog ; ?></a>
+       <a href="server-ftp/changelog.txt"><?php echo $changelog ; ?></a>
 	</p>  
   
     <h1>LeechDotNet</h1>

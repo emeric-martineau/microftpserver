@@ -53,6 +53,8 @@ namespace MicroFTPServerGUI
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.label9 = new System.Windows.Forms.Label();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.textBoxGoodbyeMessage = new System.Windows.Forms.TextBox();
+            this.label10 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownPort)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownUser)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownClient)).BeginInit();
@@ -171,9 +173,9 @@ namespace MicroFTPServerGUI
             this.label5.AutoSize = true;
             this.label5.Location = new System.Drawing.Point(295, 110);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(54, 13);
+            this.label5.Size = new System.Drawing.Size(123, 13);
             this.label5.TabIndex = 11;
-            this.label5.Text = "Time out :";
+            this.label5.Text = "Time out (0 to disabled) :";
             // 
             // numericUpDownTimeOut
             // 
@@ -287,11 +289,31 @@ namespace MicroFTPServerGUI
             this.groupBox2.TabIndex = 24;
             this.groupBox2.TabStop = false;
             // 
+            // textBoxGoodbyeMessage
+            // 
+            this.textBoxGoodbyeMessage.Location = new System.Drawing.Point(15, 204);
+            this.textBoxGoodbyeMessage.Multiline = true;
+            this.textBoxGoodbyeMessage.Name = "textBoxGoodbyeMessage";
+            this.textBoxGoodbyeMessage.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.textBoxGoodbyeMessage.Size = new System.Drawing.Size(265, 77);
+            this.textBoxGoodbyeMessage.TabIndex = 26;
+            // 
+            // label10
+            // 
+            this.label10.AutoSize = true;
+            this.label10.Location = new System.Drawing.Point(12, 188);
+            this.label10.Name = "label10";
+            this.label10.Size = new System.Drawing.Size(101, 13);
+            this.label10.TabIndex = 25;
+            this.label10.Text = "Goodbye message :";
+            // 
             // FormGeneralConfig
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(548, 386);
+            this.Controls.Add(this.textBoxGoodbyeMessage);
+            this.Controls.Add(this.label10);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.label9);
             this.Controls.Add(this.groupBox1);
@@ -360,5 +382,7 @@ namespace MicroFTPServerGUI
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.Label label9;
         private System.Windows.Forms.GroupBox groupBox2;
+        private System.Windows.Forms.TextBox textBoxGoodbyeMessage;
+        private System.Windows.Forms.Label label10;
     }
 }
