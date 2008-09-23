@@ -39,6 +39,7 @@ namespace MicroFTPServerGUI
             this.textBoxRoot = new System.Windows.Forms.TextBox();
             this.buttonRoot = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.checkBoxSubDir = new System.Windows.Forms.CheckBox();
             this.checkBoxModify = new System.Windows.Forms.CheckBox();
             this.checkBoxDeleteDirectory = new System.Windows.Forms.CheckBox();
             this.checkBoxMakeDirectory = new System.Windows.Forms.CheckBox();
@@ -53,8 +54,13 @@ namespace MicroFTPServerGUI
             this.buttonApply = new System.Windows.Forms.Button();
             this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
             this.buttonCopy = new System.Windows.Forms.Button();
-            this.checkBoxSubDir = new System.Windows.Forms.CheckBox();
+            this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.checkBoxByteRateDisabled = new System.Windows.Forms.CheckBox();
+            this.numericUpDownByteRate = new System.Windows.Forms.NumericUpDown();
+            this.label4 = new System.Windows.Forms.Label();
             this.groupBox1.SuspendLayout();
+            this.groupBox2.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownByteRate)).BeginInit();
             this.SuspendLayout();
             // 
             // listView1
@@ -64,7 +70,7 @@ namespace MicroFTPServerGUI
             this.listView1.Location = new System.Drawing.Point(12, 12);
             this.listView1.MultiSelect = false;
             this.listView1.Name = "listView1";
-            this.listView1.Size = new System.Drawing.Size(144, 325);
+            this.listView1.Size = new System.Drawing.Size(144, 430);
             this.listView1.TabIndex = 0;
             this.listView1.UseCompatibleStateImageBehavior = false;
             this.listView1.View = System.Windows.Forms.View.Details;
@@ -159,10 +165,20 @@ namespace MicroFTPServerGUI
             this.groupBox1.Controls.Add(this.checkBoxDownload);
             this.groupBox1.Location = new System.Drawing.Point(184, 116);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(213, 198);
+            this.groupBox1.Size = new System.Drawing.Size(213, 208);
             this.groupBox1.TabIndex = 9;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Rights";
+            // 
+            // checkBoxSubDir
+            // 
+            this.checkBoxSubDir.AutoSize = true;
+            this.checkBoxSubDir.Location = new System.Drawing.Point(10, 180);
+            this.checkBoxSubDir.Name = "checkBoxSubDir";
+            this.checkBoxSubDir.Size = new System.Drawing.Size(156, 17);
+            this.checkBoxSubDir.TabIndex = 7;
+            this.checkBoxSubDir.Text = "Show/Access sub directory";
+            this.checkBoxSubDir.UseVisualStyleBackColor = true;
             // 
             // checkBoxModify
             // 
@@ -237,7 +253,7 @@ namespace MicroFTPServerGUI
             // checkBoxDisable
             // 
             this.checkBoxDisable.AutoSize = true;
-            this.checkBoxDisable.Location = new System.Drawing.Point(184, 320);
+            this.checkBoxDisable.Location = new System.Drawing.Point(184, 426);
             this.checkBoxDisable.Name = "checkBoxDisable";
             this.checkBoxDisable.Size = new System.Drawing.Size(84, 17);
             this.checkBoxDisable.TabIndex = 10;
@@ -246,7 +262,7 @@ namespace MicroFTPServerGUI
             // 
             // buttonAdd
             // 
-            this.buttonAdd.Location = new System.Drawing.Point(12, 343);
+            this.buttonAdd.Location = new System.Drawing.Point(12, 448);
             this.buttonAdd.Name = "buttonAdd";
             this.buttonAdd.Size = new System.Drawing.Size(70, 23);
             this.buttonAdd.TabIndex = 11;
@@ -256,7 +272,7 @@ namespace MicroFTPServerGUI
             // 
             // buttonDelete
             // 
-            this.buttonDelete.Location = new System.Drawing.Point(86, 343);
+            this.buttonDelete.Location = new System.Drawing.Point(86, 448);
             this.buttonDelete.Name = "buttonDelete";
             this.buttonDelete.Size = new System.Drawing.Size(70, 23);
             this.buttonDelete.TabIndex = 12;
@@ -267,7 +283,7 @@ namespace MicroFTPServerGUI
             // buttonCancel
             // 
             this.buttonCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.buttonCancel.Location = new System.Drawing.Point(12, 389);
+            this.buttonCancel.Location = new System.Drawing.Point(12, 494);
             this.buttonCancel.Name = "buttonCancel";
             this.buttonCancel.Size = new System.Drawing.Size(75, 23);
             this.buttonCancel.TabIndex = 13;
@@ -276,7 +292,7 @@ namespace MicroFTPServerGUI
             // 
             // buttonApply
             // 
-            this.buttonApply.Location = new System.Drawing.Point(322, 343);
+            this.buttonApply.Location = new System.Drawing.Point(322, 448);
             this.buttonApply.Name = "buttonApply";
             this.buttonApply.Size = new System.Drawing.Size(75, 23);
             this.buttonApply.TabIndex = 14;
@@ -286,7 +302,7 @@ namespace MicroFTPServerGUI
             // 
             // buttonCopy
             // 
-            this.buttonCopy.Location = new System.Drawing.Point(183, 343);
+            this.buttonCopy.Location = new System.Drawing.Point(183, 448);
             this.buttonCopy.Name = "buttonCopy";
             this.buttonCopy.Size = new System.Drawing.Size(75, 23);
             this.buttonCopy.TabIndex = 15;
@@ -294,21 +310,50 @@ namespace MicroFTPServerGUI
             this.buttonCopy.UseVisualStyleBackColor = true;
             this.buttonCopy.Click += new System.EventHandler(this.buttonCopy_Click);
             // 
-            // checkBoxSubDir
+            // groupBox2
             // 
-            this.checkBoxSubDir.AutoSize = true;
-            this.checkBoxSubDir.Location = new System.Drawing.Point(10, 175);
-            this.checkBoxSubDir.Name = "checkBoxSubDir";
-            this.checkBoxSubDir.Size = new System.Drawing.Size(156, 17);
-            this.checkBoxSubDir.TabIndex = 7;
-            this.checkBoxSubDir.Text = "Show/Access sub directory";
-            this.checkBoxSubDir.UseVisualStyleBackColor = true;
+            this.groupBox2.Controls.Add(this.label4);
+            this.groupBox2.Controls.Add(this.numericUpDownByteRate);
+            this.groupBox2.Controls.Add(this.checkBoxByteRateDisabled);
+            this.groupBox2.Location = new System.Drawing.Point(184, 335);
+            this.groupBox2.Name = "groupBox2";
+            this.groupBox2.Size = new System.Drawing.Size(213, 85);
+            this.groupBox2.TabIndex = 16;
+            this.groupBox2.TabStop = false;
+            this.groupBox2.Text = "Byte rate (byte/second)";
+            // 
+            // checkBoxByteRateDisabled
+            // 
+            this.checkBoxByteRateDisabled.AutoSize = true;
+            this.checkBoxByteRateDisabled.Location = new System.Drawing.Point(11, 19);
+            this.checkBoxByteRateDisabled.Name = "checkBoxByteRateDisabled";
+            this.checkBoxByteRateDisabled.Size = new System.Drawing.Size(124, 17);
+            this.checkBoxByteRateDisabled.TabIndex = 0;
+            this.checkBoxByteRateDisabled.Text = "Disabled for this user";
+            this.checkBoxByteRateDisabled.UseVisualStyleBackColor = true;
+            // 
+            // numericUpDownByteRate
+            // 
+            this.numericUpDownByteRate.Location = new System.Drawing.Point(12, 43);
+            this.numericUpDownByteRate.Name = "numericUpDownByteRate";
+            this.numericUpDownByteRate.Size = new System.Drawing.Size(120, 20);
+            this.numericUpDownByteRate.TabIndex = 1;
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(9, 66);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(190, 13);
+            this.label4.TabIndex = 2;
+            this.label4.Text = "Set 0 to use byte rate of general config";
             // 
             // FormUser
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(410, 420);
+            this.ClientSize = new System.Drawing.Size(410, 523);
+            this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.buttonCopy);
             this.Controls.Add(this.buttonApply);
             this.Controls.Add(this.buttonCancel);
@@ -334,6 +379,9 @@ namespace MicroFTPServerGUI
             this.Load += new System.EventHandler(this.FormUser_Load);
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
+            this.groupBox2.ResumeLayout(false);
+            this.groupBox2.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownByteRate)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -367,6 +415,10 @@ namespace MicroFTPServerGUI
         private System.Windows.Forms.Button buttonCopy;
         private System.Windows.Forms.CheckBox checkBoxModify;
         private System.Windows.Forms.CheckBox checkBoxSubDir;
+        private System.Windows.Forms.GroupBox groupBox2;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.NumericUpDown numericUpDownByteRate;
+        private System.Windows.Forms.CheckBox checkBoxByteRateDisabled;
 
     }
 }

@@ -55,10 +55,13 @@ namespace MicroFTPServerGUI
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.textBoxGoodbyeMessage = new System.Windows.Forms.TextBox();
             this.label10 = new System.Windows.Forms.Label();
+            this.label11 = new System.Windows.Forms.Label();
+            this.numericUpDownUserByteRate = new System.Windows.Forms.NumericUpDown();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownPort)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownUser)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownClient)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownTimeOut)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownUserByteRate)).BeginInit();
             this.SuspendLayout();
             // 
             // Port
@@ -307,11 +310,34 @@ namespace MicroFTPServerGUI
             this.label10.TabIndex = 25;
             this.label10.Text = "Goodbye message :";
             // 
+            // label11
+            // 
+            this.label11.AutoSize = true;
+            this.label11.Location = new System.Drawing.Point(12, 294);
+            this.label11.Name = "label11";
+            this.label11.Size = new System.Drawing.Size(264, 13);
+            this.label11.TabIndex = 27;
+            this.label11.Text = "Default byte rate per user byte/second (0 to disabled) :";
+            // 
+            // numericUpDownUserByteRate
+            // 
+            this.numericUpDownUserByteRate.Location = new System.Drawing.Point(15, 310);
+            this.numericUpDownUserByteRate.Maximum = new decimal(new int[] {
+            268435455,
+            1042612833,
+            542101086,
+            0});
+            this.numericUpDownUserByteRate.Name = "numericUpDownUserByteRate";
+            this.numericUpDownUserByteRate.Size = new System.Drawing.Size(100, 20);
+            this.numericUpDownUserByteRate.TabIndex = 28;
+            // 
             // FormGeneralConfig
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(548, 386);
+            this.Controls.Add(this.numericUpDownUserByteRate);
+            this.Controls.Add(this.label11);
             this.Controls.Add(this.textBoxGoodbyeMessage);
             this.Controls.Add(this.label10);
             this.Controls.Add(this.groupBox2);
@@ -350,6 +376,7 @@ namespace MicroFTPServerGUI
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownUser)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownClient)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownTimeOut)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownUserByteRate)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -384,5 +411,7 @@ namespace MicroFTPServerGUI
         private System.Windows.Forms.GroupBox groupBox2;
         private System.Windows.Forms.TextBox textBoxGoodbyeMessage;
         private System.Windows.Forms.Label label10;
+        private System.Windows.Forms.Label label11;
+        private System.Windows.Forms.NumericUpDown numericUpDownUserByteRate;
     }
 }

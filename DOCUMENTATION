@@ -26,6 +26,28 @@ MicroFTP Server can have one argument :
 where config directory is directory contain files :
  * general.ini
  * users\*.*
+
+ -logile <log_file_name>
+  if specified, output redirect in log file,
+    you can use constante below
+    %Y : year
+    %M : month
+    %d : day
+    %H : hour
+    %m : minute
+    %s : seconde
+ 
+ -logsize
+  maximum log size. If specified, add -XX at end of file name, where XX is number of file
+    0 : no size
+    1024 : 1024 byte
+    1024k : 1024 kilo-byte
+    1024M : 1024 mega-byte
+    1024G : 1024 giga-byte
+    1024T : 1024 tetra-byte
+
+ -logerase 
+  if set, file log reset when size is log size.
  
 III - General configuration
 ---------------------------

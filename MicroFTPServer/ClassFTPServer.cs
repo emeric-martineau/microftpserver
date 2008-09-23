@@ -179,6 +179,11 @@ namespace ConsoleApplication1
         private bool pbDenyPriority = true;
         /* Goodbye message */
         private String psGoodbyeMessage = String.Empty;
+        /* Block size to read/write file from/to client */
+        private int piBlockSize = 512;
+        /* Waiting time between each block */
+        private int piWaitingTime = 0;
+
 
         /*
          * Constante message
@@ -214,8 +219,8 @@ namespace ConsoleApplication1
          * Constante
          */
         private const String EOL = "\r\n";
-        private const int BLOCK_SIZE = 512;
         private const int WAITING_TIME = 1000;
+        private const int BLOCK_SIZE = 512;
 
         /*
          * <summary>Constructor</summary>
@@ -288,6 +293,8 @@ namespace ConsoleApplication1
             String[] laTmpPort;
             /* Separator of allow/deny IP adress */
             char[] laIPSeparator = { ',' };
+            /* Byte rate per user per secondes */
+            int liByteRateUser;
 
             if (loGeneralIni.FileExists == true)
             {
@@ -374,6 +381,24 @@ namespace ConsoleApplication1
                                                     lsTmp = lsTmp.Replace("*", "[0-9]*");
 
                                                     paDenyIPAddress = lsTmp.Split(laIPSeparator);
+
+                                                    lsTmp = loGeneralIni.GetValue("main", "ByteRateUser");
+
+                                                    if (int.TryParse(lsTmp, out liByteRateUser) == true)
+                                                    {
+                                                        if (liByteRateUser > 0)
+                                                        {
+                                                            if (liByteRateUser <= BLOCK_SIZE)
+                                                            {
+                                                                piBlockSize = liByteRateUser;
+                                                                piWaitingTime = 1000; /* 1 second */
+                                                            }
+                                                            else if (liByteRateUser > BLOCK_SIZE)
+                                                            {
+                                                                piWaitingTime = (int)((float)BLOCK_SIZE / liByteRateUser * 1000);
+                                                            }
+                                                        }
+                                                    }
 
                                                     Run();
                                                 }
@@ -881,6 +906,14 @@ namespace ConsoleApplication1
             String lsRenameFrom = String.Empty;
             /* SubDir right */
             bool lbSubDir = false;
+            /* Size of block to send/receive from/to client */
+            int liBlockSize = piBlockSize;
+            /* Waiting to between  */
+            int liWaitingTime = piWaitingTime;
+            /* User byte rate */
+            int liByteRateUser = 0 ;
+            /* Temporary string */
+            String lsTmp;
 
             /* free ClientIP for can start other client */
             poClientIP = null;
@@ -1000,6 +1033,9 @@ namespace ConsoleApplication1
                                             }
                                             else
                                             {
+                                                liBlockSize = piBlockSize;
+                                                liWaitingTime = piWaitingTime;
+
                                                 lsUserRoot = loIni.GetValue("user", "Root");
                                                 lsCurrentWorkDir = lsUserRoot;
                                                 lbDownload = loIni.GetValue("user", "Download").Equals("yes", StringComparison.OrdinalIgnoreCase);
@@ -1010,6 +1046,29 @@ namespace ConsoleApplication1
                                                 lbDeleteDirectory = loIni.GetValue("user", "DeleteDirectory").Equals("yes", StringComparison.OrdinalIgnoreCase);
                                                 lbModifyTime = loIni.GetValue("user", "ModifyTime").Equals("yes", StringComparison.OrdinalIgnoreCase);
                                                 lbSubDir = loIni.GetValue("user", "SubDir").Equals("yes", StringComparison.OrdinalIgnoreCase);
+
+                                                lsTmp = loIni.GetValue("user", "ByteRate");
+
+                                                if (int.TryParse(lsTmp, out liByteRateUser) == true)
+                                                {
+                                                    if (liByteRateUser > 0)
+                                                    {
+                                                        if (liByteRateUser <= BLOCK_SIZE)
+                                                        {
+                                                            liBlockSize = liByteRateUser;
+                                                            liWaitingTime = 1000; /* 1 second */
+                                                        }
+                                                        else if (liByteRateUser > BLOCK_SIZE)
+                                                        {
+                                                            liWaitingTime = (int)((float)BLOCK_SIZE / liByteRateUser * 1000);
+                                                        }
+                                                    }
+                                                    else if (liByteRateUser == -1)
+                                                    {
+                                                        liBlockSize = BLOCK_SIZE;
+                                                        liWaitingTime = 0;
+                                                    }
+                                                }
 
                                                 if (System.IO.Directory.Exists(lsUserRoot) == false)
                                                 {
@@ -1075,7 +1134,7 @@ namespace ConsoleApplication1
                                     }
                                     else if (lsCmd.Equals("RETR") == true)
                                     {
-                                        SendFileCommand(lsParameter, lbDownload, lsUserRoot, lsUserCurrentDirectory, loMySocket, loClientDataListener, loClientDataSocket, lbPassiveMode, llResumeIndex, ref liTimeOutUser, lbBinaryMode);
+                                        SendFileCommand(lsParameter, lbDownload, lsUserRoot, lsUserCurrentDirectory, loMySocket, loClientDataListener, loClientDataSocket, lbPassiveMode, llResumeIndex, ref liTimeOutUser, lbBinaryMode, liWaitingTime, liBlockSize);
 
                                         llResumeIndex = 0;
                                     }
@@ -1106,7 +1165,7 @@ namespace ConsoleApplication1
                                     }
                                     else if ((lsCmd.Equals("STOR") == true) || (lsCmd.Equals("APPE") == true) || (lsCmd.Equals("STOU") == true))
                                     {
-                                        GetFileCommand(lsCmd, lsParameter, lbUpload, lsUserRoot, lsUserCurrentDirectory, loMySocket, loClientDataListener, loClientDataSocket, lbPassiveMode, llResumeIndex, ref liTimeOutUser, lbBinaryMode) ;
+                                        GetFileCommand(lsCmd, lsParameter, lbUpload, lsUserRoot, lsUserCurrentDirectory, loMySocket, loClientDataListener, loClientDataSocket, lbPassiveMode, llResumeIndex, ref liTimeOutUser, lbBinaryMode, liWaitingTime, liBlockSize);
 
                                         llResumeIndex = 0;
                                     }
@@ -2208,6 +2267,8 @@ namespace ConsoleApplication1
          * <param name="abPassiveMode">true use passive mode</param>
          * <param name="aiError">!= 0 -> error see ShowError() for more detail</param>
          * <param name="alStartIndex">start index of file (resume command)</param>
+         * <param name="aiWaitingTime">Waiting time between send block</param>
+         * <param name="aiBlockSize">Size of block to send</param>
          * <param name="aiTimeOutUser">time out time</param>
          * 
          * <returns>no return</returns>
@@ -2218,14 +2279,14 @@ namespace ConsoleApplication1
          * - 07/09/2008 : add comments,
          * <history>
          */
-        private bool SendBinaryFile(FileStream aoInFileReadBinary, TcpListener aoClientDataListener, Socket aoClientSocket, bool abPassiveMode, ref int aiError, long alStartIndex, ref int aiTimeOutUser)
+        private bool SendBinaryFile(FileStream aoInFileReadBinary, TcpListener aoClientDataListener, Socket aoClientSocket, bool abPassiveMode, ref int aiError, long alStartIndex, int aiWaitingTime, int aiBlockSize, ref int aiTimeOutUser)
         {
             /* return value */
             bool lbRetour = false;
             /* Rcp client for passive mode */
             TcpClient loClient;
             /* buffer */
-            Byte[] laMyBytes = new Byte[BLOCK_SIZE];
+            Byte[] laMyBytes = new Byte[aiBlockSize];
             /* Client socket */
             Socket loMySocket;
             /* Number byte read in file */
@@ -2318,6 +2379,8 @@ namespace ConsoleApplication1
                         }
                         while (liSize > 0);
                     }
+
+                    Thread.Sleep(aiWaitingTime);
                 }
                 while ((liNbBytesRead == laMyBytes.Length) && (lbInternalError == false)); 
 
@@ -2356,6 +2419,8 @@ namespace ConsoleApplication1
          * <param name="abPassiveMode">true use passive mode</param>
          * <param name="aiError">!= 0 -> error see ShowError() for more detail</param>
          * <param name="alStartIndex">start index of file (resume command)</param>
+         * <param name="aiWaitingTime">Waiting time between send block</param>
+         * <param name="aiBlockSize">Size of block to send</param>
          * <param name="aiTimeOutUser">time out time</param>
          * 
          * <returns>no return</returns>
@@ -2366,7 +2431,7 @@ namespace ConsoleApplication1
          * - 07/09/2008 : add comments,
          * <history>
          */
-        private bool SendTextFile(StreamReader aoInFileReadText, TcpListener aoClientDataListener, Socket aoClientSocket, bool abPassiveMode, ref int aiError, ref int aiTimeOutUser)
+        private bool SendTextFile(StreamReader aoInFileReadText, TcpListener aoClientDataListener, Socket aoClientSocket, bool abPassiveMode, ref int aiError, int aiWaitingTime, int aiBlockSize, ref int aiTimeOutUser)
         {
             /* Return value */
             bool lbRetour = false;
@@ -2455,6 +2520,8 @@ namespace ConsoleApplication1
                         liSize = laMyBytes.Length - liIndex;
                     }
                     while (liSize > 0);
+
+                    Thread.Sleep(lsLine.Length * aiWaitingTime / aiBlockSize);
                 }
                 while (aoInFileReadText.EndOfStream == false);
 
@@ -3071,14 +3138,17 @@ namespace ConsoleApplication1
          * <param name="alResumeIndex">Start of file</param>
 		 * <param name="aiTimeOutUser">Time out</param>
          * <param name="abBinaryMode">True if binary mode</param>
+         * <param name="aiWaitingTime">Waiting time between send block</param>
+         * <param name="aiBlockSize">Size of block to send</param>
          * 
          * <returns>void</returns>
 		 *
          * <history>
          * - 03/09/2008 : create function
+         * - 15/09/2008 : add aiWaitingTime, aiBlockSize parameter,
          * <history>
          */
-        private void SendFileCommand(String asParameter, bool abDownload, String asUserRoot, String asUserCurrentDirectory, Socket aoMySocket, TcpListener aoClientDataListener, Socket aoClientDataSocket, bool abPassiveMode, long alResumeIndex, ref int aiTimeOutUser, bool abBinaryMode)
+        private void SendFileCommand(String asParameter, bool abDownload, String asUserRoot, String asUserCurrentDirectory, Socket aoMySocket, TcpListener aoClientDataListener, Socket aoClientDataSocket, bool abPassiveMode, long alResumeIndex, ref int aiTimeOutUser, bool abBinaryMode, int aiWaitingTime, int aiBlockSize)
         {
             /* File */
             String lsLocalFileName = String.Empty;
@@ -3105,7 +3175,7 @@ namespace ConsoleApplication1
                         {
                             loInFileReadBinary = new FileStream(lsLocalFileName, FileMode.Open, FileAccess.Read);
 
-                            if (SendBinaryFile(loInFileReadBinary, aoClientDataListener, aoClientDataSocket, abPassiveMode, ref liError, alResumeIndex, ref aiTimeOutUser) == true)
+                            if (SendBinaryFile(loInFileReadBinary, aoClientDataListener, aoClientDataSocket, abPassiveMode, ref liError, alResumeIndex, aiWaitingTime, aiBlockSize, ref aiTimeOutUser) == true)
                             {
                                 SendAnswer(aoMySocket, MSG_TRANSFERT_COMPLET, ref aiTimeOutUser);
                             }
@@ -3120,7 +3190,7 @@ namespace ConsoleApplication1
                         {
                             loInFileReadText = new StreamReader(lsLocalFileName);
 
-                            if (SendTextFile(loInFileReadText, aoClientDataListener, aoClientDataSocket, abPassiveMode, ref liError, ref aiTimeOutUser) == true)
+                            if (SendTextFile(loInFileReadText, aoClientDataListener, aoClientDataSocket, abPassiveMode, ref liError, aiWaitingTime, aiBlockSize, ref aiTimeOutUser) == true)
                             {
                                 SendAnswer(aoMySocket, MSG_TRANSFERT_COMPLET, ref aiTimeOutUser);
                             }
@@ -3224,14 +3294,17 @@ namespace ConsoleApplication1
          * <param name="alResumeIndex">Start of file</param>
 		 * <param name="aiTimeOutUser">Time out</param>
          * <param name="abBinaryMode">True if binary mode</param>
+         * <param name="aiWaitingTime">Waiting time between send block</param>
+         * <param name="aiBlockSize">Size of block to send</param>
          * 
          * <returns>void</returns>
 		 *
          * <history>
-         * - 03/09/2008 : create function
+         * - 03/09/2008 : create function,
+         * - 15/09/2008 : add aiBlockSize, aiWaitingTime parameters,
          * <history>
          */
-        private void GetFileCommand(String asCmd, String asParameter, bool abUpload, String asUserRoot, String asUserCurrentDirectory, Socket aoMySocket, TcpListener aoClientDataListener, Socket aoClientDataSocket, bool abPassiveMode, long alResumeIndex, ref int aiTimeOutUser, bool abBinaryMode)
+        private void GetFileCommand(String asCmd, String asParameter, bool abUpload, String asUserRoot, String asUserCurrentDirectory, Socket aoMySocket, TcpListener aoClientDataListener, Socket aoClientDataSocket, bool abPassiveMode, long alResumeIndex, ref int aiTimeOutUser, bool abBinaryMode, int aiWaitingTime, int aiBlockSize)
         {
             /* File name */
             String lsLocalFileName = String.Empty;
@@ -3243,6 +3316,10 @@ namespace ConsoleApplication1
             TcpClient loTmpClient;
             /* file information to ensure file a good size */
             FileInfo loFi;
+            /* Count number to try a random file */
+            int liFileNumberOut = 0 ;
+            /* Error to get random file name */
+            bool lbErrorInRandomFile = false ;
 
             if (abUpload == true)
             {
@@ -3250,54 +3327,69 @@ namespace ConsoleApplication1
                 {
                     if (asCmd.Equals("STOU") == true)
                     {
-                        asParameter = System.IO.Path.GetRandomFileName();
-                    }
-
-                    lsLocalFileName = FTPPathToOSPath(asUserRoot, asUserCurrentDirectory, asParameter);
-
-                    if (asCmd.Equals("STOU") == true)
-                    {
-                        SendAnswer(aoMySocket, String.Concat("150 FILE: ", asParameter), ref aiTimeOutUser);
-                    }
-                    else
-                    {
-                        SendAnswer(aoMySocket, String.Concat("150 Opening ", (abBinaryMode == true ? "binary" : "ASCII"), " mode data connection for ", asParameter, "."), ref aiTimeOutUser);
-                    }
-
-                    if (File.Exists(lsLocalFileName) == true)
-                    {
-                        if ((asCmd.Equals("STOR") == true) || (asCmd.Equals("STOU") == true))
+                        do
                         {
-                            loOutFileWriteBinary = new FileStream(lsLocalFileName, FileMode.Open, FileAccess.Write);
+                            asParameter = System.IO.Path.GetRandomFileName();
+                            liFileNumberOut++;
+                        }
+                        while ((System.IO.File.Exists(asParameter) == false) || (liFileNumberOut > 100));
 
-                            /* trunc file if necessary */
-                            loFi = new FileInfo(lsLocalFileName);
+                        if (liFileNumberOut > 100)
+                        {
+                            lbErrorInRandomFile = true ;
 
-                            if (loFi.Length > alResumeIndex)
+                            SendAnswer(aoMySocket, "501 Cannot create unique file name. Try again.", ref aiTimeOutUser);
+                        }
+                    }
+
+                    if (lbErrorInRandomFile == false)
+                    {
+                        lsLocalFileName = FTPPathToOSPath(asUserRoot, asUserCurrentDirectory, asParameter);
+
+                        if (asCmd.Equals("STOU") == true)
+                        {
+                            SendAnswer(aoMySocket, String.Concat("150 FILE: ", asParameter), ref aiTimeOutUser);
+                        }
+                        else
+                        {
+                            SendAnswer(aoMySocket, String.Concat("150 Opening ", (abBinaryMode == true ? "binary" : "ASCII"), " mode data connection for ", asParameter, "."), ref aiTimeOutUser);
+                        }
+
+                        if (File.Exists(lsLocalFileName) == true)
+                        {
+                            if ((asCmd.Equals("STOR") == true) || (asCmd.Equals("STOU") == true))
                             {
-                                loOutFileWriteBinary.SetLength(alResumeIndex);
+                                loOutFileWriteBinary = new FileStream(lsLocalFileName, FileMode.Open, FileAccess.Write);
+
+                                /* trunc file if necessary */
+                                loFi = new FileInfo(lsLocalFileName);
+
+                                if (loFi.Length > alResumeIndex)
+                                {
+                                    loOutFileWriteBinary.SetLength(alResumeIndex);
+                                }
+                            }
+                            else
+                            {
+                                loOutFileWriteBinary = new FileStream(lsLocalFileName, FileMode.Append, FileAccess.Write);
                             }
                         }
                         else
                         {
-                            loOutFileWriteBinary = new FileStream(lsLocalFileName, FileMode.Append, FileAccess.Write);
+                            loOutFileWriteBinary = new FileStream(lsLocalFileName, FileMode.Create, FileAccess.Write);
                         }
-                    }
-                    else
-                    {
-                        loOutFileWriteBinary = new FileStream(lsLocalFileName, FileMode.Create, FileAccess.Write);
-                    }
 
-                    if (GetFile(loOutFileWriteBinary, aoClientDataListener, aoClientDataSocket, abPassiveMode, ref liError, alResumeIndex, abBinaryMode, ref aiTimeOutUser) == true)
-                    {
-                        SendAnswer(aoMySocket, MSG_TRANSFERT_COMPLET, ref aiTimeOutUser);
-                    }
-                    else
-                    {
-                        ShowError(aoMySocket, ref aiTimeOutUser, asParameter, liError);
-                    }
+                        if (GetFile(loOutFileWriteBinary, aoClientDataListener, aoClientDataSocket, abPassiveMode, ref liError, alResumeIndex, abBinaryMode, ref aiTimeOutUser) == true)
+                        {
+                            SendAnswer(aoMySocket, MSG_TRANSFERT_COMPLET, ref aiTimeOutUser);
+                        }
+                        else
+                        {
+                            ShowError(aoMySocket, ref aiTimeOutUser, asParameter, liError);
+                        }
 
-                    loOutFileWriteBinary.Close();
+                        loOutFileWriteBinary.Close();
+                    }
                 }
                 catch
                 {

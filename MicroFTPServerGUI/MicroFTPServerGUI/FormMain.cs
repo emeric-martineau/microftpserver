@@ -36,6 +36,10 @@ namespace MicroFTPServerGUI
     {
         private String CONFIG_FILE;
         private String ConfigPath;
+        private String LogFile;
+        private String LogSize;
+        private bool UseLogFile = false;
+        private bool EraseLogFile = false;
         private String ServerPath ;
         private bool HideSystray ;
         private bool LaunchAtStartup ;
@@ -98,7 +102,7 @@ namespace MicroFTPServerGUI
          */
         private void StartServer()
         {
-            String FileName = AddDirSeparatorAtEnd(ServerPath) + "MicroFTPServer.exe" ;
+            String FileName = String.Concat(AddDirSeparatorAtEnd(ServerPath), "MicroFTPServer.exe") ;
 
             try
             {
@@ -108,20 +112,48 @@ namespace MicroFTPServerGUI
                     ServerProcessus.StartInfo.RedirectStandardOutput = true;
                     ServerProcessus.StartInfo.FileName = FileName;
                     
-                    if (ConfigPath != "")
+                    if (ConfigPath.Equals(String.Empty) == false)
                     {
-                        ServerProcessus.StartInfo.Arguments = "-root \"" + ConfigPath + "\"";
+                        ServerProcessus.StartInfo.Arguments = String.Concat("-root \"", ConfigPath, "\"");
+                    }
+
+                    if (UseLogFile == true)
+                    {
+                        if (LogFile.Equals(String.Empty) == false)
+                        {
+                            ServerProcessus.StartInfo.Arguments = String.Concat(ServerProcessus.StartInfo.Arguments, " -logfile ", LogFile);
+
+                            if (LogSize.Equals(String.Empty) == false)
+                            {
+                                ServerProcessus.StartInfo.Arguments = String.Concat(ServerProcessus.StartInfo.Arguments, " -logsize ", LogSize);
+                            }
+
+                            if (EraseLogFile == true)
+                            {
+                                ServerProcessus.StartInfo.Arguments = String.Concat(ServerProcessus.StartInfo.Arguments, " -logerase");
+                            }
+                        }
                     }
 
                     ServerProcessus.StartInfo.CreateNoWindow = true;
+
                     ServerProcessus.Exited += new EventHandler(Server_Exited);
+
                     ServerProcessus.Start();
                     ServerRunning = true;
+
+
+                    backgroundWorker1 = new BackgroundWorker();
+                    backgroundWorker1.WorkerReportsProgress = true;
+                    backgroundWorker1.WorkerSupportsCancellation = true;
+                    backgroundWorker1.DoWork += backgroundWorker1_DoWork;
+                    backgroundWorker1.ProgressChanged += backgroundWorker1_ProgressChanged;
                     backgroundWorker1.RunWorkerAsync(ServerProcessus);
                 }
                 else
                 {
                     StatusLabelStatus.Text = "Server not found" ;
+                    ServerRunning = false;
                 }
             }
             catch
@@ -237,6 +269,10 @@ namespace MicroFTPServerGUI
             {
                 ConfigPath = fgs.ConfigPath;
                 ServerPath = fgs.ServerPath;
+                LogSize = fgs.LogSize;
+                LogFile = fgs.LogFile;
+                UseLogFile = fgs.UseLogFile;
+                EraseLogFile = fgs.EraseLogFile;
             }
         }
 
@@ -256,7 +292,10 @@ namespace MicroFTPServerGUI
             ServerPath = Ini.GetValue("main", "server");
             HideSystray = Ini.GetValue("main", "HideSystray").ToLower() == "yes";
             LaunchAtStartup = Ini.GetValue("main", "RunAutomatically").ToLower() == "yes";
-
+            UseLogFile = Ini.GetValue("main", "UseLogFile").ToLower() == "yes";
+            LogFile = Ini.GetValue("main", "LogFile");
+            LogSize = Ini.GetValue("main", "LogSize");
+            EraseLogFile = Ini.GetValue("main", "EraseLogFile").ToLower() == "yes";
 
             if (ListOfProcessGUI.Length > 1)
             {
@@ -350,12 +389,8 @@ namespace MicroFTPServerGUI
 
         private void MenuRestartServer_Click(object sender, EventArgs e)
         {
-            StopServer();
-            StatusLabelStatus.Text = "Server stopped";
-            ActiveMenu();
-            StartServer();
-            StatusLabelStatus.Text = "Server running";
-            ActiveMenu();
+            MenuStopServer_Click(sender, e);
+            MenuStartServer_Click(sender, e) ;
         }
 
         private void MenuGeneralConfig_Click(object sender, EventArgs e)
@@ -436,8 +471,13 @@ namespace MicroFTPServerGUI
         {
             Process MyServerProcessus = (Process)e.Argument;
 
-            while (MyServerProcessus.StandardOutput.EndOfStream == false)
+            while (MyServerProcessus.HasExited == false)
             {
+                if (MyServerProcessus.StandardOutput.EndOfStream == true)
+                {
+                    break;
+                }
+
                 try
                 {
                     (sender as BackgroundWorker).ReportProgress(0, MyServerProcessus.StandardOutput.ReadLine());

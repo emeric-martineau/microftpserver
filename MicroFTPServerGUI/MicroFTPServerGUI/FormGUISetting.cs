@@ -32,9 +32,13 @@ namespace MicroFTPServerGUI
 {
     public partial class FormGUISetting : Form
     {
-        public String CONFIG_FILE = "";
-        public String ConfigPath = "";
-        public String ServerPath = "";
+        public String CONFIG_FILE = String.Empty;
+        public String ConfigPath = String.Empty;
+        public String ServerPath = String.Empty;
+        public String LogSize = String.Empty;
+        public String LogFile = String.Empty;
+        public bool UseLogFile = false;
+        public bool EraseLogFile = false;
 
         public FormGUISetting()
         {
@@ -69,6 +73,10 @@ namespace MicroFTPServerGUI
             textBoxServerPath.Text = Ini.GetValue("main", "server");
             checkBoxHideSystray.Checked = Ini.GetValue("main", "HideSystray").ToLower() == "yes" ;
             checkBoxLaunchAtStartup.Checked = Ini.GetValue("main", "RunAutomatically").ToLower() == "yes";
+            checkBoxLogFile.Checked = Ini.GetValue("main", "UseLogFile").ToLower() == "yes";
+            textBoxLogFile.Text = Ini.GetValue("main", "LogFile");
+            textBoxLogSize.Text = Ini.GetValue("main", "LogSize");
+            checkBoxEraseLogFile.Checked = Ini.GetValue("main", "EraseLogFile").ToLower() == "yes";
         }
 
         private void OKButton_Click(object sender, EventArgs e)
@@ -80,11 +88,19 @@ namespace MicroFTPServerGUI
             sw.WriteLine("server=\"" + textBoxServerPath.Text + "\"");
             sw.WriteLine("HideSystray=\"" + (checkBoxHideSystray.Checked == true ? "yes" : "no") + "\"");
             sw.WriteLine("RunAutomatically=\"" + (checkBoxLaunchAtStartup.Checked == true ? "yes" : "no") + "\"");
+            sw.WriteLine("UseLogFile=\"" + (checkBoxLogFile.Checked == true ? "yes" : "no") + "\"");
+            sw.WriteLine("LogSize=" + textBoxLogSize.Text);
+            sw.WriteLine("LogFile=\"" + textBoxLogFile.Text + "\"");
+            sw.WriteLine("EraseLogFile=\"" + (checkBoxEraseLogFile.Checked == true ? "yes" : "no") + "\"");
 
             sw.Close() ;
 
             ServerPath = textBoxServerPath.Text;
             ConfigPath = textBoxConfig.Text;
+            LogSize = textBoxLogSize.Text;
+            LogFile = textBoxLogFile.Text;
+            UseLogFile = checkBoxLogFile.Checked;
+            EraseLogFile = checkBoxEraseLogFile.Checked;
         }
     }
 }

@@ -40,6 +40,14 @@ namespace MicroFTPServerGUI
             this.OKButton = new System.Windows.Forms.Button();
             this.CancelButtonButton = new System.Windows.Forms.Button();
             this.folderBrowserDialog2 = new System.Windows.Forms.FolderBrowserDialog();
+            this.label3 = new System.Windows.Forms.Label();
+            this.checkBoxLogFile = new System.Windows.Forms.CheckBox();
+            this.textBoxLogFile = new System.Windows.Forms.TextBox();
+            this.label4 = new System.Windows.Forms.Label();
+            this.label5 = new System.Windows.Forms.Label();
+            this.textBoxLogSize = new System.Windows.Forms.TextBox();
+            this.label6 = new System.Windows.Forms.Label();
+            this.checkBoxEraseLogFile = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // label1
@@ -97,7 +105,7 @@ namespace MicroFTPServerGUI
             // checkBoxLaunchAtStartup
             // 
             this.checkBoxLaunchAtStartup.AutoSize = true;
-            this.checkBoxLaunchAtStartup.Location = new System.Drawing.Point(15, 90);
+            this.checkBoxLaunchAtStartup.Location = new System.Drawing.Point(15, 406);
             this.checkBoxLaunchAtStartup.Name = "checkBoxLaunchAtStartup";
             this.checkBoxLaunchAtStartup.Size = new System.Drawing.Size(158, 17);
             this.checkBoxLaunchAtStartup.TabIndex = 6;
@@ -107,7 +115,7 @@ namespace MicroFTPServerGUI
             // checkBoxHideSystray
             // 
             this.checkBoxHideSystray.AutoSize = true;
-            this.checkBoxHideSystray.Location = new System.Drawing.Point(15, 113);
+            this.checkBoxHideSystray.Location = new System.Drawing.Point(15, 429);
             this.checkBoxHideSystray.Name = "checkBoxHideSystray";
             this.checkBoxHideSystray.Size = new System.Drawing.Size(141, 17);
             this.checkBoxHideSystray.TabIndex = 7;
@@ -117,7 +125,7 @@ namespace MicroFTPServerGUI
             // OKButton
             // 
             this.OKButton.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.OKButton.Location = new System.Drawing.Point(15, 139);
+            this.OKButton.Location = new System.Drawing.Point(15, 455);
             this.OKButton.Name = "OKButton";
             this.OKButton.Size = new System.Drawing.Size(75, 23);
             this.OKButton.TabIndex = 8;
@@ -128,18 +136,95 @@ namespace MicroFTPServerGUI
             // CancelButtonButton
             // 
             this.CancelButtonButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.CancelButtonButton.Location = new System.Drawing.Point(359, 139);
+            this.CancelButtonButton.Location = new System.Drawing.Point(359, 455);
             this.CancelButtonButton.Name = "CancelButtonButton";
             this.CancelButtonButton.Size = new System.Drawing.Size(75, 23);
             this.CancelButtonButton.TabIndex = 9;
             this.CancelButtonButton.Text = "Cancel";
             this.CancelButtonButton.UseVisualStyleBackColor = true;
             // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(12, 114);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(47, 13);
+            this.label3.TabIndex = 10;
+            this.label3.Text = "Log file :";
+            // 
+            // checkBoxLogFile
+            // 
+            this.checkBoxLogFile.AutoSize = true;
+            this.checkBoxLogFile.Location = new System.Drawing.Point(15, 90);
+            this.checkBoxLogFile.Name = "checkBoxLogFile";
+            this.checkBoxLogFile.Size = new System.Drawing.Size(78, 17);
+            this.checkBoxLogFile.TabIndex = 11;
+            this.checkBoxLogFile.Text = "Use log file";
+            this.checkBoxLogFile.UseVisualStyleBackColor = true;
+            // 
+            // textBoxLogFile
+            // 
+            this.textBoxLogFile.Location = new System.Drawing.Point(16, 132);
+            this.textBoxLogFile.Name = "textBoxLogFile";
+            this.textBoxLogFile.Size = new System.Drawing.Size(387, 20);
+            this.textBoxLogFile.TabIndex = 12;
+            // 
+            // label4
+            // 
+            this.label4.Location = new System.Drawing.Point(13, 155);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(390, 81);
+            this.label4.TabIndex = 13;
+            this.label4.Text = "%Y : year\r\n%M : month\r\n%d : day\r\n%H : hour\r\n%m : minute\r\n%s : seconde\r\n";
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(13, 247);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(52, 13);
+            this.label5.TabIndex = 14;
+            this.label5.Text = "Log size :";
+            // 
+            // textBoxLogSize
+            // 
+            this.textBoxLogSize.Location = new System.Drawing.Point(15, 263);
+            this.textBoxLogSize.Name = "textBoxLogSize";
+            this.textBoxLogSize.Size = new System.Drawing.Size(388, 20);
+            this.textBoxLogSize.TabIndex = 15;
+            // 
+            // label6
+            // 
+            this.label6.Location = new System.Drawing.Point(13, 286);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(390, 84);
+            this.label6.TabIndex = 16;
+            this.label6.Text = "0 : no size\r\n1024 : 1024 byte\r\n1024k : 1024 kilo-byte\r\n1024M : 1024 mega-byte\r\n10" +
+                "24G : 1024 giga-byte\r\n1024T : 1024 tetra-byte";
+            // 
+            // checkBoxEraseLogFile
+            // 
+            this.checkBoxEraseLogFile.AutoSize = true;
+            this.checkBoxEraseLogFile.Location = new System.Drawing.Point(15, 373);
+            this.checkBoxEraseLogFile.Name = "checkBoxEraseLogFile";
+            this.checkBoxEraseLogFile.Size = new System.Drawing.Size(226, 17);
+            this.checkBoxEraseLogFile.TabIndex = 17;
+            this.checkBoxEraseLogFile.Text = "Erase log when log file have maximum size";
+            this.checkBoxEraseLogFile.UseVisualStyleBackColor = true;
+            // 
             // FormGUISetting
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(446, 174);
+            this.ClientSize = new System.Drawing.Size(446, 496);
+            this.Controls.Add(this.checkBoxEraseLogFile);
+            this.Controls.Add(this.label6);
+            this.Controls.Add(this.textBoxLogSize);
+            this.Controls.Add(this.label5);
+            this.Controls.Add(this.label4);
+            this.Controls.Add(this.textBoxLogFile);
+            this.Controls.Add(this.checkBoxLogFile);
+            this.Controls.Add(this.label3);
             this.Controls.Add(this.CancelButtonButton);
             this.Controls.Add(this.OKButton);
             this.Controls.Add(this.checkBoxHideSystray);
@@ -176,5 +261,13 @@ namespace MicroFTPServerGUI
         private System.Windows.Forms.Button OKButton;
         private System.Windows.Forms.Button CancelButtonButton;
         private System.Windows.Forms.FolderBrowserDialog folderBrowserDialog2;
+        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.Label label6;
+        private System.Windows.Forms.CheckBox checkBoxLogFile;
+        private System.Windows.Forms.TextBox textBoxLogFile;
+        private System.Windows.Forms.TextBox textBoxLogSize;
+        private System.Windows.Forms.CheckBox checkBoxEraseLogFile;
     }
 }

@@ -129,6 +129,8 @@ namespace MicroFTPServerGUI
             if (listView1.SelectedItems.Count > 0)
             {
                 ClassIniReader Ini = new ClassIniReader(USER_PATH + "users\\" + listView1.SelectedItems[0].Text + ".ini");
+                String tmp;
+                int value;
 
                 textBoxName.Text = listView1.SelectedItems[0].Text;
 
@@ -148,6 +150,26 @@ namespace MicroFTPServerGUI
                 checkBoxUpload.Checked = Ini.GetValue("user", "Upload").ToLower() == "yes";
                 checkBoxModify.Checked = Ini.GetValue("user", "ModifyTime").ToLower() == "yes";
                 checkBoxSubDir.Checked = Ini.GetValue("user", "SubDir").ToLower() == "yes";
+
+                tmp = Ini.GetValue("user", "ByteRate");
+
+                if (int.TryParse(tmp, out value) == false)
+                {
+                    value = 0;
+                }
+
+                if (value == -1)
+                {
+                    numericUpDownByteRate.Value = 0;
+                    numericUpDownByteRate.Enabled = false;
+                    checkBoxByteRateDisabled.Checked = true;
+                }
+                else
+                {
+                    numericUpDownByteRate.Value = value;
+                    numericUpDownByteRate.Enabled = true;
+                    checkBoxByteRateDisabled.Checked = false;
+                }
 
                 if (listView1.SelectedItems[0].Text == "anonymous")
                 {
@@ -177,6 +199,7 @@ namespace MicroFTPServerGUI
                 try
                 {
                     StreamWriter sw = new StreamWriter(USER_PATH + "users\\" + listView1.SelectedItems[0].Text + ".ini");
+                    decimal value;
 
                     sw.WriteLine("[user]");
 
@@ -193,6 +216,16 @@ namespace MicroFTPServerGUI
                     sw.WriteLine("DeleteDirectory=" + (checkBoxDeleteDirectory.Checked == true ? "yes" : "no"));
                     sw.WriteLine("ModifyTime=" + (checkBoxModify.Checked == true ? "yes" : "no"));
                     sw.WriteLine("SubDir=" + (checkBoxSubDir.Checked == true ? "yes" : "no"));
+
+                    value = numericUpDownByteRate.Value;
+
+                    if (checkBoxByteRateDisabled.Checked == false)
+                    {
+                        value = -1;
+                    }
+
+                    sw.WriteLine("ByteRate=" + value);
+
                     sw.Close();
                 }
                 catch

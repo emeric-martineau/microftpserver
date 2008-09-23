@@ -95,6 +95,15 @@ namespace MicroFTPServerGUI
 
             textBoxAllowIP.Text = Ini.GetValue("main", "AllowIPAddress");
             textBoxDenyIP.Text = Ini.GetValue("main", "DenyIPAddress");
+
+            tmp = Ini.GetValue("main", "ByteRateUser");
+
+            if (int.TryParse(tmp, out value) == false)
+            {
+                value = 0;
+            }
+
+            numericUpDownUserByteRate.Value = value;
         }
 
         private void buttonOK_Click(object sender, EventArgs e)
@@ -136,6 +145,8 @@ namespace MicroFTPServerGUI
                 sw.WriteLine("; Empty to disable");
                 sw.WriteLine("AllowIPAddress=" + textBoxAllowIP.Text);
                 sw.WriteLine("DenyIPAddress=" + textBoxDenyIP.Text);
+                sw.WriteLine("") ;
+                sw.WriteLine("ByteRateUser=" + numericUpDownUserByteRate.Value);
 
                 sw.Close();
             }
