@@ -224,6 +224,7 @@ namespace MicroFTPServerGUI
                         value = -1;
                     }
 
+                    sw.WriteLine("; 0 use default byte rate configuration in general.ini. -1 disabled");
                     sw.WriteLine("ByteRate=" + value);
 
                     sw.Close();

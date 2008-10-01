@@ -68,6 +68,7 @@ General configuration is in file : general.ini
 					IP address separe IP by comma (,)
 					Empty to disable
  * DenyIPAddress : IP address not allow to connect
+ * ByteRateUser : Default byte rate per user. 0 to disabled
 
 IV - Users configuration
 ------------------------
@@ -86,6 +87,7 @@ To add user, simply copy emeric.ini to name_of_user.ini. After edit it.
  * DeleteDirectory : yes -> user can delete directory
  * ModifyTime : yes -> user can modify time of file or directory
  * Disabled : yes -> user is disabled
+ * ByteRate : 0 use default byte rate configuration in general.ini. -1 disabled
  
 If parametter is omitted, this parametter set to no.
 

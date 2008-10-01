@@ -52,7 +52,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ClassFTPServer.cs" />
+    <Compile Include="ClassGetFile.cs" />
     <Compile Include="ClassIni.cs" />
+    <Compile Include="ClassSendFile.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

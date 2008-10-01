@@ -70,9 +70,9 @@
  * [OK] RNFR       Rename from.	        bool Rename
  * [OK] RNTO       501 Permission Denied bool Rename
  * ABOR
- * DELE       501 Permission Denied bool Delete
- * RMD XRMD      501 Permission Denied bool DeleteDirectory
- * MKD XMKD      501 Permission Denied bool MakeDirectory
+ * [OK] DELE       501 Permission Denied bool Delete
+ * [OK] RMD XRMD      501 Permission Denied bool DeleteDirectory
+ * [OK] MKD XMKD      501 Permission Denied bool MakeDirectory
  * [OK] PWD XPWD
  * [OK] LIST
  * [OK] NLST
@@ -121,6 +121,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Security.Cryptography;
+using System.ComponentModel;
 
 namespace ConsoleApplication1
 {
@@ -199,7 +200,7 @@ namespace ConsoleApplication1
         private const String LOG_NEW_CONNECTION = "[{0}] New connection";
         private const String MSG_TRANSFERT_COMPLET = "226 Transfer complete.";
         private const String MSG_FILE_NOT_FOUND = "550 {0}: No such file or directory.";
-
+        private const String ERROR_TRANSFERT_IN_PROGRESS = "501 File transfert in progress, stop it before do an other.";
         /*
          * Error
          */
@@ -835,7 +836,8 @@ namespace ConsoleApplication1
          *                UTF8Command function,
          * - 04/09/2008 : create ModifyFileTimeCommand, FeatCommand, RenameFileFromCommand,
          *                RenameFileToCommand function,
-         * - 09/09/2008 : add goodbye message, add subdir right
+         * - 09/09/2008 : add goodbye message, add subdir right,
+         * - 28/09/2008 : add DELE, RMD, XRMD, MKD, XMKD command,
          * <history> 
          */
         private void FTPClientThread()
@@ -914,6 +916,12 @@ namespace ConsoleApplication1
             int liByteRateUser = 0 ;
             /* Temporary string */
             String lsTmp;
+            /* Object to get a file from client */
+            ClassGetFile loGetFile = new ClassGetFile();
+            /* Object to send a file to client */
+            ClassSendFile loSendFile = new ClassSendFile();
+            /* Object to get a file */
+            BackgroundWorker loGetSendFileBackgroundWorker = null;
 
             /* free ClientIP for can start other client */
             poClientIP = null;
@@ -1124,7 +1132,7 @@ namespace ConsoleApplication1
                                     {
                                         llResumeIndex = 0;
 
-                                        TypeCommande(lsParameter, ref lbBinaryMode, loMySocket, ref liTimeOutUser);
+                                        TypeCommand(lsParameter, ref lbBinaryMode, loMySocket, ref liTimeOutUser);
                                     }
                                     else if ((lsCmd.Equals("LIST") == true) || (lsCmd.Equals("NLST") == true))
                                     {
@@ -1134,7 +1142,32 @@ namespace ConsoleApplication1
                                     }
                                     else if (lsCmd.Equals("RETR") == true)
                                     {
-                                        SendFileCommand(lsParameter, lbDownload, lsUserRoot, lsUserCurrentDirectory, loMySocket, loClientDataListener, loClientDataSocket, lbPassiveMode, llResumeIndex, ref liTimeOutUser, lbBinaryMode, liWaitingTime, liBlockSize);
+                                        loSendFile.gsParameter = lsParameter;
+                                        loSendFile.gbDownload = lbDownload;
+                                        loSendFile.gsUserRoot = lsUserRoot;
+                                        loSendFile.gsUserCurrentDirectory = lsUserCurrentDirectory;
+                                        loSendFile.goMySocket = loMySocket;
+                                        loSendFile.goClientDataListener = loClientDataListener;
+                                        loSendFile.goClientDataSocket = loClientDataSocket;
+                                        loSendFile.gbPassiveMode = lbPassiveMode;
+                                        loSendFile.glResumeIndex = llResumeIndex;
+                                        loSendFile.giTimeOutUser = liTimeOutUser;
+                                        loSendFile.gbBinaryMode = lbBinaryMode;
+                                        loSendFile.giWaitingTime = liWaitingTime ;
+                                        loSendFile.giBlockSize = liBlockSize;
+
+                                        if ((loGetSendFileBackgroundWorker == null) || (loGetSendFileBackgroundWorker.IsBusy == false))
+                                        {
+                                            loGetSendFileBackgroundWorker = new BackgroundWorker();
+                                            loGetSendFileBackgroundWorker.WorkerReportsProgress = true;
+                                            loGetSendFileBackgroundWorker.WorkerSupportsCancellation = true;
+                                            loGetSendFileBackgroundWorker.DoWork += SendFileBackGroundWorker_DoWork;
+                                            loGetSendFileBackgroundWorker.RunWorkerAsync(loSendFile);
+                                        }
+                                        else
+                                        {
+                                            SendAnswer(loMySocket, ERROR_TRANSFERT_IN_PROGRESS, ref liTimeOutUser);
+                                        }
 
                                         llResumeIndex = 0;
                                     }
@@ -1165,7 +1198,32 @@ namespace ConsoleApplication1
                                     }
                                     else if ((lsCmd.Equals("STOR") == true) || (lsCmd.Equals("APPE") == true) || (lsCmd.Equals("STOU") == true))
                                     {
-                                        GetFileCommand(lsCmd, lsParameter, lbUpload, lsUserRoot, lsUserCurrentDirectory, loMySocket, loClientDataListener, loClientDataSocket, lbPassiveMode, llResumeIndex, ref liTimeOutUser, lbBinaryMode, liWaitingTime, liBlockSize);
+                                        loGetFile.gsCmd = lsCmd;
+                                        loGetFile.gsParameter = lsParameter;
+                                        loGetFile.gbUpload = lbUpload;
+                                        loGetFile.gsUserRoot = lsUserRoot;
+                                        loGetFile.gsUserCurrentDirectory = lsUserCurrentDirectory;
+                                        loGetFile.goMySocket = loMySocket;
+                                        loGetFile.goClientDataListener = loClientDataListener;
+                                        loGetFile.goClientDataSocket = loClientDataSocket;
+                                        loGetFile.gbPassiveMode = lbPassiveMode;
+                                        loGetFile.glResumeIndex = llResumeIndex;
+                                        loGetFile.giTimeOutUser = liTimeOutUser;
+                                        loGetFile.gbBinaryMode = lbBinaryMode;
+                                        loGetFile.giWaitingTime = liWaitingTime;
+
+                                        if ((loGetSendFileBackgroundWorker == null) || (loGetSendFileBackgroundWorker.IsBusy == false))
+                                        {
+                                            loGetSendFileBackgroundWorker = new BackgroundWorker();
+                                            loGetSendFileBackgroundWorker.WorkerReportsProgress = true;
+                                            loGetSendFileBackgroundWorker.WorkerSupportsCancellation = true;
+                                            loGetSendFileBackgroundWorker.DoWork += GetFileBackGroundWorker_DoWork;
+                                            loGetSendFileBackgroundWorker.RunWorkerAsync(loGetFile);
+                                        }
+                                        else
+                                        {
+                                            SendAnswer(loMySocket, ERROR_TRANSFERT_IN_PROGRESS, ref liTimeOutUser);
+                                        }
 
                                         llResumeIndex = 0;
                                     }
@@ -1202,15 +1260,39 @@ namespace ConsoleApplication1
                                     }
                                     else if (lsCmd.Equals("FEAT") == true)
                                     {
+                                        llResumeIndex = 0;
+
                                         FeatCommand(loMySocket, ref liTimeOutUser);
                                     }
                                     else if (lsCmd.Equals("RNFR") == true)
                                     {
+                                        llResumeIndex = 0;
+
                                         RenameFileFromCommand(lsParameter, ref lsRenameFrom, lbRename, lsUserRoot, lsUserCurrentDirectory, loMySocket, ref liTimeOutUser);
                                     }
                                     else if (lsCmd.Equals("RNTO") == true)
                                     {
+                                        llResumeIndex = 0;
+
                                         RenameFileToCommand(lsParameter, ref lsRenameFrom, lbRename, lsUserRoot, lsUserCurrentDirectory, loMySocket, ref liTimeOutUser);                                        
+                                    }
+                                    else if (lsCmd.Equals("DELE") == true)
+                                    {
+                                        llResumeIndex = 0;
+
+                                        DeleteFileCommand(lsParameter, lbDelete, lsUserRoot, lsUserCurrentDirectory, loMySocket, ref liTimeOutUser);
+                                    }
+                                    else if ((lsCmd.Equals("RMD") == true) || (lsCmd.Equals("XRMD") == true))
+                                    {
+                                        llResumeIndex = 0;
+
+                                        DeleteDirectoryCommand(lsParameter, lbDeleteDirectory, lsUserRoot, lsUserCurrentDirectory, loMySocket, ref liTimeOutUser);
+                                    }
+                                    else if ((lsCmd.Equals("MKD") == true) || (lsCmd.Equals("XMKD") == true))
+                                    {
+                                        llResumeIndex = 0;
+
+                                        MakeDirectoryCommand(lsParameter, lbMakeDirectory, lsUserRoot, lsUserCurrentDirectory, loMySocket, ref liTimeOutUser);
                                     }
                                     else
                                     {
@@ -2261,6 +2343,7 @@ namespace ConsoleApplication1
          * 
          * <remarks></remarks>
          * 
+         * <param name="aoBackgroundWorker">BackGroundWorker</param>
          * <param name="aoInFileReadBinary">object file binary to read</param>
          * <param name="aoClientDataListener">client socket for pasive mode</param>
          * <param name="aoClientSocket">client socket for active mode</param>
@@ -2277,9 +2360,10 @@ namespace ConsoleApplication1
          * - 06/07/2008 : rename variable name, 
          *                add WAITING_TIME constante,
          * - 07/09/2008 : add comments,
+         * - 30/09/2008 : add aoBackgroundWorker,
          * <history>
          */
-        private bool SendBinaryFile(FileStream aoInFileReadBinary, TcpListener aoClientDataListener, Socket aoClientSocket, bool abPassiveMode, ref int aiError, long alStartIndex, int aiWaitingTime, int aiBlockSize, ref int aiTimeOutUser)
+        private bool SendBinaryFile(BackgroundWorker aoBackgroundWorker, FileStream aoInFileReadBinary, TcpListener aoClientDataListener, Socket aoClientSocket, bool abPassiveMode, ref int aiError, long alStartIndex, int aiWaitingTime, int aiBlockSize, ref int aiTimeOutUser)
         {
             /* return value */
             bool lbRetour = false;
@@ -2381,6 +2465,11 @@ namespace ConsoleApplication1
                     }
 
                     Thread.Sleep(aiWaitingTime);
+
+                    if (aoBackgroundWorker.CancellationPending == true)
+                    {
+                        break;
+                    }
                 }
                 while ((liNbBytesRead == laMyBytes.Length) && (lbInternalError == false)); 
 
@@ -2413,6 +2502,7 @@ namespace ConsoleApplication1
          * 
          * <remarks></remarks>
          * 
+         * <param name="aoBackgroundWorker">BackGroundWorker</param>
          * <param name="aoInFileReadText">object text file to read</param>
          * <param name="aoClientDataListener">client socket for pasive mode</param>
          * <param name="aoClientSocket">client socket for active mode</param>
@@ -2429,9 +2519,10 @@ namespace ConsoleApplication1
          * - 06/07/2008 : rename variable name
          *                add WAITING_TIME constante,
          * - 07/09/2008 : add comments,
+         * - 30/09/2008 : add aoBackgroundWorker,
          * <history>
          */
-        private bool SendTextFile(StreamReader aoInFileReadText, TcpListener aoClientDataListener, Socket aoClientSocket, bool abPassiveMode, ref int aiError, int aiWaitingTime, int aiBlockSize, ref int aiTimeOutUser)
+        private bool SendTextFile(BackgroundWorker aoBackgroundWorker, StreamReader aoInFileReadText, TcpListener aoClientDataListener, Socket aoClientSocket, bool abPassiveMode, ref int aiError, int aiWaitingTime, int aiBlockSize, ref int aiTimeOutUser)
         {
             /* Return value */
             bool lbRetour = false;
@@ -2518,6 +2609,11 @@ namespace ConsoleApplication1
 
                         liIndex += liNbBytes;
                         liSize = laMyBytes.Length - liIndex;
+
+                        if (aoBackgroundWorker.CancellationPending == true)
+                        {
+                            break;
+                        }
                     }
                     while (liSize > 0);
 
@@ -2606,7 +2702,7 @@ namespace ConsoleApplication1
          * - 07/09/2008 : add comments,
          * <history>
          */
-        private bool GetFile(FileStream aoOutFileWriteBinary, TcpListener aoClientDataListener, Socket aoClientSocket, bool abPassiveMode, ref int aiError, long alStartIndex, bool abBinaryMode, ref int aiTimeOutUser)
+        private bool GetFile(BackgroundWorker aoBackgroundWorker, FileStream aoOutFileWriteBinary, TcpListener aoClientDataListener, Socket aoClientSocket, bool abPassiveMode, ref int aiError, long alStartIndex, bool abBinaryMode, ref int aiTimeOutUser)
         {
             /* Return value */
             bool lbRetour = false;
@@ -2706,6 +2802,11 @@ namespace ConsoleApplication1
 
                         /* Reinit time out */
                         aiTimeOutUser = piTimeOut;
+                    }
+
+                    if (aoBackgroundWorker.CancellationPending == true)
+                    {
+                        break;
                     }
                 }
                 while (aiTimeOutUser > 0);
@@ -2869,6 +2970,7 @@ namespace ConsoleApplication1
          * <param name="asLocalFileNameFrom">file to rename</param>
          * <param name="asLocalFileNameTo">new name</param>
          * <param name="aiError">0 -> no error, see ShowError() for more detail</param>
+         * <param name="abDirectory">return true if file is directory</param>
 		 *
          * <returns>true if success</returns>
 		 *
@@ -3059,7 +3161,7 @@ namespace ConsoleApplication1
          * - 03/09/2008 : create function
          * <history>
          */
-        private void TypeCommande(String asParameter, ref bool abBinaryMode, Socket aoMySocket, ref int aiTimeOutUser)
+        private void TypeCommand(String asParameter, ref bool abBinaryMode, Socket aoMySocket, ref int aiTimeOutUser)
         {
             if (asParameter.Equals("I", StringComparison.OrdinalIgnoreCase) == true)
             {
@@ -3127,29 +3229,37 @@ namespace ConsoleApplication1
 		 *
          * <remarks></remarks>
 		 *
-         * <param name="asParameter">Parameter of command (file name)</param>
-         * <param name="abDownload">True if user can be download</param>
-         * <param name="asUserRoot">Directory root of user</param>
-         * <param name="asUserCurrentDirectory">Current directory of user</param>
-         * <param name="aoMySocket">Command socket</param>
-         * <param name="aoClientDataListener">Passive client listener</param>
-         * <param name="aoClientDataSocket">Socket client</param>
-         * <param name="abPassiveMode">True if client is in passive mode</param>
-         * <param name="alResumeIndex">Start of file</param>
-		 * <param name="aiTimeOutUser">Time out</param>
-         * <param name="abBinaryMode">True if binary mode</param>
-         * <param name="aiWaitingTime">Waiting time between send block</param>
-         * <param name="aiBlockSize">Size of block to send</param>
+         * <param name="sender">BackGroundWorker</param>
+         * <param name="e">e.Argument is ClassGetFile</param>
          * 
          * <returns>void</returns>
 		 *
          * <history>
-         * - 03/09/2008 : create function
-         * - 15/09/2008 : add aiWaitingTime, aiBlockSize parameter,
+         * - 03/09/2008 : create function,
+         * - 15/09/2008 : add aiBlockSize, aiWaitingTime parameters,
+         * - 29/09/2008 : pass to thread function,
          * <history>
          */
-        private void SendFileCommand(String asParameter, bool abDownload, String asUserRoot, String asUserCurrentDirectory, Socket aoMySocket, TcpListener aoClientDataListener, Socket aoClientDataSocket, bool abPassiveMode, long alResumeIndex, ref int aiTimeOutUser, bool abBinaryMode, int aiWaitingTime, int aiBlockSize)
+        //private void SendFileCommand(String asParameter, bool abDownload, String asUserRoot, String asUserCurrentDirectory, Socket aoMySocket, TcpListener aoClientDataListener, Socket aoClientDataSocket, bool abPassiveMode, long alResumeIndex, ref int aiTimeOutUser, bool abBinaryMode, int aiWaitingTime, int aiBlockSize)
+        private void SendFileBackGroundWorker_DoWork(object sender, DoWorkEventArgs e)
         {
+            /* Mapping */
+            ClassSendFile loSendFile = (ClassSendFile)e.Argument;
+            String asParameter = loSendFile.gsParameter;
+            bool abDownload = loSendFile.gbBinaryMode;
+            String asUserRoot = loSendFile.gsUserRoot;
+            String asUserCurrentDirectory = loSendFile.gsUserCurrentDirectory;
+            Socket aoMySocket = loSendFile.goMySocket;
+            TcpListener aoClientDataListener = loSendFile.goClientDataListener;
+            Socket aoClientDataSocket = loSendFile.goClientDataSocket;
+            bool abPassiveMode = loSendFile.gbPassiveMode;
+            long alResumeIndex = loSendFile.glResumeIndex;
+            int aiTimeOutUser = loSendFile.giTimeOutUser;
+            bool abBinaryMode = loSendFile.gbBinaryMode;
+            int aiWaitingTime = loSendFile.giWaitingTime;
+            int aiBlockSize = loSendFile.giBlockSize;
+            /* BackgroundWorker */
+            BackgroundWorker loBackgroundWorker = (BackgroundWorker)sender;
             /* File */
             String lsLocalFileName = String.Empty;
             /* Error */
@@ -3175,7 +3285,7 @@ namespace ConsoleApplication1
                         {
                             loInFileReadBinary = new FileStream(lsLocalFileName, FileMode.Open, FileAccess.Read);
 
-                            if (SendBinaryFile(loInFileReadBinary, aoClientDataListener, aoClientDataSocket, abPassiveMode, ref liError, alResumeIndex, aiWaitingTime, aiBlockSize, ref aiTimeOutUser) == true)
+                            if (SendBinaryFile(loBackgroundWorker, loInFileReadBinary, aoClientDataListener, aoClientDataSocket, abPassiveMode, ref liError, alResumeIndex, aiWaitingTime, aiBlockSize, ref aiTimeOutUser) == true)
                             {
                                 SendAnswer(aoMySocket, MSG_TRANSFERT_COMPLET, ref aiTimeOutUser);
                             }
@@ -3190,7 +3300,7 @@ namespace ConsoleApplication1
                         {
                             loInFileReadText = new StreamReader(lsLocalFileName);
 
-                            if (SendTextFile(loInFileReadText, aoClientDataListener, aoClientDataSocket, abPassiveMode, ref liError, aiWaitingTime, aiBlockSize, ref aiTimeOutUser) == true)
+                            if (SendTextFile(loBackgroundWorker, loInFileReadText, aoClientDataListener, aoClientDataSocket, abPassiveMode, ref liError, aiWaitingTime, aiBlockSize, ref aiTimeOutUser) == true)
                             {
                                 SendAnswer(aoMySocket, MSG_TRANSFERT_COMPLET, ref aiTimeOutUser);
                             }
@@ -3282,30 +3392,37 @@ namespace ConsoleApplication1
 		 *
          * <remarks></remarks>
 		 *
-         * <param name="asCmd">Command STOR/APPE</param>
-         * <param name="asParameter">Parameter of command (file name)</param>
-         * <param name="abUpload">True if user can be download</param>
-         * <param name="asUserRoot">Directory root of user</param>
-         * <param name="asUserCurrentDirectory">Current directory of user</param>
-         * <param name="aoMySocket">Command socket</param>
-         * <param name="aoClientDataListener">Passive client listener</param>
-         * <param name="aoClientDataSocket">Socket client</param>
-         * <param name="abPassiveMode">True if client is in passive mode</param>
-         * <param name="alResumeIndex">Start of file</param>
-		 * <param name="aiTimeOutUser">Time out</param>
-         * <param name="abBinaryMode">True if binary mode</param>
-         * <param name="aiWaitingTime">Waiting time between send block</param>
-         * <param name="aiBlockSize">Size of block to send</param>
+         * <param name="sender">BackGroundWorker</param>
+         * <param name="e">e.Argument is ClassGetFile</param>
          * 
          * <returns>void</returns>
 		 *
          * <history>
          * - 03/09/2008 : create function,
          * - 15/09/2008 : add aiBlockSize, aiWaitingTime parameters,
+         * - 29/09/2008 : pass to thread function,
          * <history>
          */
-        private void GetFileCommand(String asCmd, String asParameter, bool abUpload, String asUserRoot, String asUserCurrentDirectory, Socket aoMySocket, TcpListener aoClientDataListener, Socket aoClientDataSocket, bool abPassiveMode, long alResumeIndex, ref int aiTimeOutUser, bool abBinaryMode, int aiWaitingTime, int aiBlockSize)
+        private void GetFileBackGroundWorker_DoWork(object sender, DoWorkEventArgs e)
+        //private void GetFileCommand(String asCmd, String asParameter, bool abUpload, String asUserRoot, String asUserCurrentDirectory, Socket aoMySocket, TcpListener aoClientDataListener, Socket aoClientDataSocket, bool abPassiveMode, long alResumeIndex, ref int aiTimeOutUser, bool abBinaryMode, int aiWaitingTime, int aiBlockSize)
         {
+            /* Mapping */
+            ClassGetFile loGetFile = (ClassGetFile)e.Argument;
+            bool lbUpload = loGetFile.gbUpload;
+            String lsCmd = loGetFile.gsCmd;
+            String lsParameter = loGetFile.gsParameter;
+            Socket loMySocket = loGetFile.goMySocket;
+            String lsUserRoot = loGetFile.gsUserRoot ;
+            String lsUserCurrentDirectory = loGetFile.gsUserCurrentDirectory;
+            TcpListener aoClientDataListener = loGetFile.goClientDataListener;
+            Socket loClientDataSocket = loGetFile.goClientDataSocket;
+            bool lbPassiveMode = loGetFile.gbPassiveMode;
+            long llResumeIndex = loGetFile.glResumeIndex;
+            int liTimeOutUser = loGetFile.giTimeOutUser;
+            bool lbBinaryMode = loGetFile.gbBinaryMode;
+            int liWaitingTime = loGetFile.giWaitingTime;
+            /* BackgroundWorker */
+            BackgroundWorker loBackgroundWorker = (BackgroundWorker)sender;
             /* File name */
             String lsLocalFileName = String.Empty;
             /* Error */
@@ -3321,52 +3438,52 @@ namespace ConsoleApplication1
             /* Error to get random file name */
             bool lbErrorInRandomFile = false ;
 
-            if (abUpload == true)
+            if (lbUpload == true)
             {
                 try
                 {
-                    if (asCmd.Equals("STOU") == true)
+                    if (lsCmd.Equals("STOU") == true)
                     {
                         do
                         {
-                            asParameter = System.IO.Path.GetRandomFileName();
+                            lsParameter = System.IO.Path.GetRandomFileName();
                             liFileNumberOut++;
                         }
-                        while ((System.IO.File.Exists(asParameter) == false) || (liFileNumberOut > 100));
+                        while ((System.IO.File.Exists(lsParameter) == false) || (liFileNumberOut > 100));
 
                         if (liFileNumberOut > 100)
                         {
                             lbErrorInRandomFile = true ;
 
-                            SendAnswer(aoMySocket, "501 Cannot create unique file name. Try again.", ref aiTimeOutUser);
+                            SendAnswer(loMySocket, "501 Cannot create unique file name. Try again.", ref liTimeOutUser);
                         }
                     }
 
                     if (lbErrorInRandomFile == false)
                     {
-                        lsLocalFileName = FTPPathToOSPath(asUserRoot, asUserCurrentDirectory, asParameter);
+                        lsLocalFileName = FTPPathToOSPath(lsUserRoot, lsUserCurrentDirectory, lsParameter);
 
-                        if (asCmd.Equals("STOU") == true)
+                        if (lsCmd.Equals("STOU") == true)
                         {
-                            SendAnswer(aoMySocket, String.Concat("150 FILE: ", asParameter), ref aiTimeOutUser);
+                            SendAnswer(loMySocket, String.Concat("150 FILE: ", lsParameter), ref liTimeOutUser);
                         }
                         else
                         {
-                            SendAnswer(aoMySocket, String.Concat("150 Opening ", (abBinaryMode == true ? "binary" : "ASCII"), " mode data connection for ", asParameter, "."), ref aiTimeOutUser);
+                            SendAnswer(loMySocket, String.Concat("150 Opening ", (lbBinaryMode == true ? "binary" : "ASCII"), " mode data connection for ", lsParameter, "."), ref liTimeOutUser);
                         }
 
                         if (File.Exists(lsLocalFileName) == true)
                         {
-                            if ((asCmd.Equals("STOR") == true) || (asCmd.Equals("STOU") == true))
+                            if ((lsCmd.Equals("STOR") == true) || (lsCmd.Equals("STOU") == true))
                             {
                                 loOutFileWriteBinary = new FileStream(lsLocalFileName, FileMode.Open, FileAccess.Write);
 
                                 /* trunc file if necessary */
                                 loFi = new FileInfo(lsLocalFileName);
 
-                                if (loFi.Length > alResumeIndex)
+                                if (loFi.Length > llResumeIndex)
                                 {
-                                    loOutFileWriteBinary.SetLength(alResumeIndex);
+                                    loOutFileWriteBinary.SetLength(llResumeIndex);
                                 }
                             }
                             else
@@ -3379,13 +3496,13 @@ namespace ConsoleApplication1
                             loOutFileWriteBinary = new FileStream(lsLocalFileName, FileMode.Create, FileAccess.Write);
                         }
 
-                        if (GetFile(loOutFileWriteBinary, aoClientDataListener, aoClientDataSocket, abPassiveMode, ref liError, alResumeIndex, abBinaryMode, ref aiTimeOutUser) == true)
+                        if (GetFile(loBackgroundWorker, loOutFileWriteBinary, aoClientDataListener, loClientDataSocket, lbPassiveMode, ref liError, llResumeIndex, lbBinaryMode, ref liTimeOutUser) == true)
                         {
-                            SendAnswer(aoMySocket, MSG_TRANSFERT_COMPLET, ref aiTimeOutUser);
+                            SendAnswer(loMySocket, MSG_TRANSFERT_COMPLET, ref liTimeOutUser);
                         }
                         else
                         {
-                            ShowError(aoMySocket, ref aiTimeOutUser, asParameter, liError);
+                            ShowError(loMySocket, ref liTimeOutUser, lsParameter, liError);
                         }
 
                         loOutFileWriteBinary.Close();
@@ -3393,22 +3510,22 @@ namespace ConsoleApplication1
                 }
                 catch
                 {
-                    if (abPassiveMode == true)
+                    if (lbPassiveMode == true)
                     {
                         loTmpClient = aoClientDataListener.AcceptTcpClient();
                         loTmpClient.Client.Close();
                     }
                     else
                     {
-                        aoClientDataSocket.Close();
+                        loClientDataSocket.Close();
                     }
 
-                    SendAnswer(aoMySocket, ERROR_PERMISSION_DENIED, ref aiTimeOutUser);
+                    SendAnswer(loMySocket, ERROR_PERMISSION_DENIED, ref liTimeOutUser);
                 }
             }
             else
             {
-                SendAnswer(aoMySocket, "500 Cannot RETR.", ref aiTimeOutUser);
+                SendAnswer(loMySocket, "500 Cannot RETR.", ref liTimeOutUser);
             }
         }
 
@@ -3718,6 +3835,261 @@ namespace ConsoleApplication1
             asText += asPrefixe + " ";
 
             return asText;
+        }
+
+        /*
+         * <summary>Delete a file</summary>
+		 *
+         * <remarks></remarks>
+		 *
+         * <param name="asFileName">file to remove</param>
+         * <param name="aiError">0 -> no error, see ShowError() for more detail</param>
+		 *
+         * <returns>true if success</returns>
+		 *
+         * <history>
+         * - 28/09/2008 : create function
+         * <history>
+         */
+        private bool RemoveFile(String asFileName, ref int aiError)
+        {
+            /* Return value */
+            bool lbRetour = false;
+
+            if (File.Exists(asFileName) == true)
+            {
+                try
+                {
+                    File.Delete(asFileName);
+
+                    aiError = SUCCESS;
+                    lbRetour = true;
+                }
+                catch
+                {
+                    aiError = ACCES_DENIED;
+                }
+            }
+            else
+            {
+                aiError = FILE_NOT_FOUND;
+            }
+
+            return lbRetour;
+        }
+
+        /*
+         * <summary>DELE Command</summary>
+		 *
+         * <remarks></remarks>
+		 *
+         * <param name="asParameter">Parameter of command (file name)</param>
+         * <param name="abDelete">True if user can remove file</param>
+         * <param name="asUserRoot">Directory root of user</param>
+         * <param name="asUserCurrentDirectory">Current directory of user</param>
+         * <param name="aoMySocket">Command socket</param>
+		 * <param name="aiTimeOutUser">Time out</param>
+         * 
+         * <returns>void</returns>
+		 *
+         * <history>
+         * - 04/09/2008 : create function
+         * <history>
+         */
+        private void DeleteFileCommand(String asParameter, bool abDelete, String asUserRoot, String asUserCurrentDirectory, Socket aoMySocket, ref int aiTimeOutUser)
+        {
+            /* File name */
+            String lsLocalFileName = String.Empty;
+            /* Error */
+            int liError = 0;
+
+            if (abDelete == true)
+            {
+                lsLocalFileName = FTPPathToOSPath(asUserRoot, asUserCurrentDirectory, asParameter);
+
+                if (RemoveFile(lsLocalFileName, ref liError) == true)
+                {
+                    SendAnswer(aoMySocket, String.Format("250 File '{0}' deleted.", asParameter), ref aiTimeOutUser);
+                }
+                else
+                {
+                    ShowError(aoMySocket, ref aiTimeOutUser, asParameter, liError);
+                }
+            }
+            else
+            {
+                SendAnswer(aoMySocket, ERROR_PERMISSION_DENIED, ref aiTimeOutUser);
+            }
+        }
+
+        /*
+         * <summary>Delete a directory</summary>
+		 *
+         * <remarks></remarks>
+		 *
+         * <param name="asDirectoryName">directory to remove</param>
+         * <param name="aiError">0 -> no error, see ShowError() for more detail</param>
+		 *
+         * <returns>true if success</returns>
+		 *
+         * <history>
+         * - 28/09/2008 : create function
+         * <history>
+         */
+        private bool RemoveDirectory(String asDirectoryName, ref int aiError)
+        {
+            /* Return value */
+            bool lbRetour = false;
+
+            if (Directory.Exists(asDirectoryName) == true)
+            {
+                try
+                {
+                    Directory.Delete(asDirectoryName);
+
+                    aiError = SUCCESS;
+                    lbRetour = true;
+                }
+                catch
+                {
+                    aiError = ACCES_DENIED;
+                }
+            }
+            else
+            {
+                aiError = FILE_NOT_FOUND;
+            }
+
+            return lbRetour;
+        }
+
+        /*
+         * <summary>RMD/XRMD Command</summary>
+		 *
+         * <remarks></remarks>
+		 *
+         * <param name="asParameter">Parameter of command (file name)</param>
+         * <param name="abDeleteDirectory">True if user can remove directory</param>
+         * <param name="asUserRoot">Directory root of user</param>
+         * <param name="asUserCurrentDirectory">Current directory of user</param>
+         * <param name="aoMySocket">Command socket</param>
+		 * <param name="aiTimeOutUser">Time out</param>
+         * 
+         * <returns>void</returns>
+		 *
+         * <history>
+         * - 04/09/2008 : create function
+         * <history>
+         */
+        private void DeleteDirectoryCommand(String asParameter, bool abDeleteDirectory, String asUserRoot, String asUserCurrentDirectory, Socket aoMySocket, ref int aiTimeOutUser)
+        {
+            /* File name */
+            String lsLocalFileName = String.Empty;
+            /* Error */
+            int liError = 0;
+
+            if (abDeleteDirectory == true)
+            {
+                lsLocalFileName = FTPPathToOSPath(asUserRoot, asUserCurrentDirectory, asParameter);
+
+                if (RemoveDirectory(lsLocalFileName, ref liError) == true)
+                {
+                    SendAnswer(aoMySocket, String.Format("250 '{0}': directory deleted.", asParameter), ref aiTimeOutUser);
+                }
+                else
+                {
+                    ShowError(aoMySocket, ref aiTimeOutUser, asParameter, liError);
+                }
+            }
+            else
+            {
+                SendAnswer(aoMySocket, ERROR_PERMISSION_DENIED, ref aiTimeOutUser);
+            }
+        }
+
+        /*
+         * <summary>Make a directory</summary>
+         *
+         * <remarks></remarks>
+         *
+         * <param name="asDirectoryName">directory to create</param>
+         * <param name="aiError">0 -> no error, see ShowError() for more detail</param>
+         *
+         * <returns>true if success</returns>
+         *
+         * <history>
+         * - 28/09/2008 : create function
+         * <history>
+         */
+        private bool CreateDirectory(String asDirectoryName, ref int aiError)
+        {
+            /* Return value */
+            bool lbRetour = false;
+
+            if (Directory.Exists(asDirectoryName) == false)
+            {
+                try
+                {
+                    Directory.CreateDirectory(asDirectoryName);
+
+                    aiError = SUCCESS;
+                    lbRetour = true;
+                }
+                catch
+                {
+                    aiError = ACCES_DENIED;
+                }
+            }
+            else
+            {
+                aiError = DIRECTORY_ALREADY_EXIST;
+            }
+
+            return lbRetour;
+        }
+
+        /*
+         * <summary>MKD/XMKD Command</summary>
+		 *
+         * <remarks></remarks>
+		 *
+         * <param name="asParameter">Parameter of command (file name)</param>
+         * <param name="abMakeDirectory">True if user can create directory</param>
+         * <param name="asUserRoot">Directory root of user</param>
+         * <param name="asUserCurrentDirectory">Current directory of user</param>
+         * <param name="aoMySocket">Command socket</param>
+		 * <param name="aiTimeOutUser">Time out</param>
+         * 
+         * <returns>void</returns>
+		 *
+         * <history>
+         * - 04/09/2008 : create function
+         * <history>
+         */
+        private void MakeDirectoryCommand(String asParameter, bool abMakeDirectory, String asUserRoot, String asUserCurrentDirectory, Socket aoMySocket, ref int aiTimeOutUser)
+        {
+            /* File name */
+            String lsLocalFileName = String.Empty;
+            /* Error */
+            int liError = 0;
+
+            if (abMakeDirectory == true)
+            {
+                lsLocalFileName = FTPPathToOSPath(asUserRoot, asUserCurrentDirectory, asParameter);
+
+                if (CreateDirectory(lsLocalFileName, ref liError) == true)
+                {
+                    SendAnswer(aoMySocket, String.Format("257 '{0}': directory created.", asParameter), ref aiTimeOutUser);
+                }
+                else
+                {
+                    ShowError(aoMySocket, ref aiTimeOutUser, asParameter, liError);
+                }
+            }
+            else
+            {
+                SendAnswer(aoMySocket, ERROR_PERMISSION_DENIED, ref aiTimeOutUser);
+            }
         }
     }   
 }

@@ -146,6 +146,7 @@ namespace MicroFTPServerGUI
                 sw.WriteLine("AllowIPAddress=" + textBoxAllowIP.Text);
                 sw.WriteLine("DenyIPAddress=" + textBoxDenyIP.Text);
                 sw.WriteLine("") ;
+                sw.WriteLine("; Default byte rate per user. 0 to disabled");
                 sw.WriteLine("ByteRateUser=" + numericUpDownUserByteRate.Value);
 
                 sw.Close();
