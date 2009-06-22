@@ -69,7 +69,7 @@
  * [OK] REST
  * [OK] RNFR       Rename from.	        bool Rename
  * [OK] RNTO       501 Permission Denied bool Rename
- * ABOR
+ * [OK] ABOR
  * [OK] DELE       501 Permission Denied bool Delete
  * [OK] RMD XRMD      501 Permission Denied bool DeleteDirectory
  * [OK] MKD XMKD      501 Permission Denied bool MakeDirectory
@@ -92,26 +92,6 @@ help utf8
 502 Command UTF8 is not recognized or supported by FileZilla Server
 help user
 214 Command USER is supported by FileZilla Server
- 
- * [OK] NOOP
- * [OK] FEAT
- *  211-Features:
-[OK]     MDTM
-          -> MDTM 2.zip  -> File.GetLastWriteTime()
-             213 20080526101721
-             Syntax: MDTM remote-filename
-             Returns the last-modified time of the given file on the remote host in the format "YYYYMMDDhhmmss": YYYY is the four-digit year, MM is the month from 01 to 12, DD is the day of the month from 01 to 31, hh is the hour from 00 to 23, mm is the minute from 00 to 59, and ss is the second from 00 to 59. 
-[OK]     SIZE
-[OK]     UTF8 ON|OFF -> passe en mode utf8 les lignes de commande : 200 UTF8 mode enabled : 200 UTF8 mode disabled : 501 Invalid UFT8 options
-[OK]     CLNT <ckient name> - Send FTP Client Name to server. : 200 Don't care
-[OK]     MFMT bool ModifyTime
-         mfmt 20080101121212 consolidation.exe
-         213 modify=20080101121212; /consolidation.exe
-         501 Not a valid date
-         501 Syntax error
-         MSG_TRANSFERT_COMPLET
-         ShowError(2)
-    211 End
  */
 using System;
 using System.Collections.Generic;
@@ -181,10 +161,9 @@ namespace ConsoleApplication1
         /* Goodbye message */
         private String psGoodbyeMessage = String.Empty;
         /* Block size to read/write file from/to client */
-        private int piBlockSize = 512;
+        private int piBlockSize ;
         /* Waiting time between each block */
         private int piWaitingTime = 0;
-
 
         /*
          * Constante message
@@ -196,6 +175,7 @@ namespace ConsoleApplication1
         private const String ERROR_INVALID_TIME_OUT = "** ERROR ** Is not a valide number in TimeOut.";
         private const String ERROR_CANT_OPEN_PORT = "** ERROR ** Can't open port. Maybe already use ?";
         private const String ERROR_INVALID_PASSIVE_PORT = "** ERROR ** Is not a valide range number in PassivePort.";
+        private const String ERROR_INVALID_BUFFER_SIZE = "** ERROR ** Invalide buffer size.";
         private const String ERROR_PERMISSION_DENIED = "501 Permission Denied.";
         private const String LOG_NEW_CONNECTION = "[{0}] New connection";
         private const String MSG_TRANSFERT_COMPLET = "226 Transfer complete.";
@@ -215,13 +195,14 @@ namespace ConsoleApplication1
         private const int SYNTAX_ERROR = 8 ;
         private const int FILE_ALREADY_EXIST = 9;
         private const int DIRECTORY_ALREADY_EXIST = 10;
+        private const int TIME_OUT_FOR_PASSIVE_CONNECTION = 11;
 
         /*
          * Constante
          */
         private const String EOL = "\r\n";
         private const int WAITING_TIME = 1000;
-        private const int BLOCK_SIZE = 512;
+        private int BLOCK_SIZE = 512;
 
         /*
          * <summary>Constructor</summary>
@@ -383,25 +364,36 @@ namespace ConsoleApplication1
 
                                                     paDenyIPAddress = lsTmp.Split(laIPSeparator);
 
-                                                    lsTmp = loGeneralIni.GetValue("main", "ByteRateUser");
+                                                    lsTmp = loGeneralIni.GetValue("main", "BufferSize");
 
-                                                    if (int.TryParse(lsTmp, out liByteRateUser) == true)
+                                                    if (int.TryParse(lsTmp, out piBlockSize) == true)
                                                     {
-                                                        if (liByteRateUser > 0)
+                                                        BLOCK_SIZE = piBlockSize ;
+
+                                                        lsTmp = loGeneralIni.GetValue("main", "ByteRateUser");
+
+                                                        if (int.TryParse(lsTmp, out liByteRateUser) == true)
                                                         {
-                                                            if (liByteRateUser <= BLOCK_SIZE)
+                                                            if (liByteRateUser > 0)
                                                             {
-                                                                piBlockSize = liByteRateUser;
-                                                                piWaitingTime = 1000; /* 1 second */
-                                                            }
-                                                            else if (liByteRateUser > BLOCK_SIZE)
-                                                            {
-                                                                piWaitingTime = (int)((float)BLOCK_SIZE / liByteRateUser * 1000);
+                                                                if (liByteRateUser <= BLOCK_SIZE)
+                                                                {
+                                                                    piBlockSize = liByteRateUser;
+                                                                    piWaitingTime = 1000; /* 1 second */
+                                                                }
+                                                                else if (liByteRateUser > BLOCK_SIZE)
+                                                                {
+                                                                    piWaitingTime = (int)((float)BLOCK_SIZE / liByteRateUser * 1000);
+                                                                }
                                                             }
                                                         }
-                                                    }
 
-                                                    Run();
+                                                        Run();
+                                                    }
+                                                    else
+                                                    {
+                                                        Log(ERROR_INVALID_BUFFER_SIZE);
+                                                    }
                                                 }
                                                 else
                                                 {
@@ -1294,6 +1286,17 @@ namespace ConsoleApplication1
 
                                         MakeDirectoryCommand(lsParameter, lbMakeDirectory, lsUserRoot, lsUserCurrentDirectory, loMySocket, ref liTimeOutUser);
                                     }
+                                    else if (lsCmd.Equals("ABOR") == true)
+                                    {
+                                        if (loGetSendFileBackgroundWorker != null)
+                                        {
+                                            loGetSendFileBackgroundWorker.CancelAsync() ;
+
+                                            SendAnswer(loMySocket, "426 Connection closed; transfer aborted.", ref liTimeOutUser);
+                                        }
+
+                                        SendAnswer(loMySocket, "226 ABOR command successful.", ref liTimeOutUser);
+                                    }
                                     else
                                     {
                                         llResumeIndex = 0;
@@ -1664,8 +1667,6 @@ namespace ConsoleApplication1
         {
             /* Return value */
             bool lbRetour = true;
-            /* Tcp Client for passive transfert */
-            TcpClient loClient;
             /* Byte arry to be send */
             Byte[] laMyBytes;
             /* Client socket */
@@ -1691,71 +1692,81 @@ namespace ConsoleApplication1
 
                     if (abPassiveMode == true)
                     {
-                        loClient = aoClientDataListener.AcceptTcpClient();
-                        loMySocket = loClient.Client;
+                        loMySocket = GetPassiveConnection(aoClientDataListener, ref aiTimeOutUser);
                     }
                     else
                     {
                         loMySocket = aoClientSocket;
                     }
 
-                    liIndex = 0;
-                    liSize = laMyBytes.Length;
-
-                    do
+                    if (loMySocket != null)
                     {
-                        liNbBytes = loMySocket.Send(laMyBytes, liIndex, liSize, SocketFlags.None, out loErrorSocket);
+                        liIndex = 0;
+                        liSize = laMyBytes.Length;
 
-                        if (liNbBytes == 0)
+                        do
                         {
-                            if (loErrorSocket != System.Net.Sockets.SocketError.WouldBlock)
+                            liNbBytes = loMySocket.Send(laMyBytes, liIndex, liSize, SocketFlags.None, out loErrorSocket);
+
+                            if (liNbBytes == 0)
                             {
-                                /* Connection close */
-                                aiError = CONNECTION_CLOSE_BY_CLIENT ;
-                                break;
+                                if (loErrorSocket != System.Net.Sockets.SocketError.WouldBlock)
+                                {
+                                    /* Connection close */
+                                    aiError = CONNECTION_CLOSE_BY_CLIENT ;
+                                    break;
+                                }
+                                else
+                                {
+                                    /* Why ??? */
+                                    Thread.Sleep(WAITING_TIME);
+                                    aiTimeOutUser--;
+
+                                    if (aiTimeOutUser == 0)
+                                    {
+                                        lbRetour = false;
+                                        break;
+                                    }
+                                }
                             }
                             else
                             {
-                                /* Why ??? */
-                                Thread.Sleep(WAITING_TIME);
-                                aiTimeOutUser--;
-
-                                if (aiTimeOutUser == 0)
-                                {
-                                    lbRetour = false;
-                                    break;
-                                }
+                                lbRetour = true;
+                                aiTimeOutUser = piTimeOut;
                             }
-                        }
-                        else
-                        {
-                            lbRetour = true;
-                            aiTimeOutUser = piTimeOut;
-                        }
 
-                        if (pbCancel == true)
-                        {
-                            break;
-                        }
+                            if (pbCancel == true)
+                            {
+                                break;
+                            }
 
-                        liIndex += liNbBytes;
-                        liSize = laMyBytes.Length - liIndex;
+                            liIndex += liNbBytes;
+                            liSize = laMyBytes.Length - liIndex;
+                        }
+                        while (liSize > 0);
+
+                        lbRetour = true;
+
+                        loMySocket.Close();
                     }
-                    while (liSize > 0);
-
-                    lbRetour = true;
-
-                    loMySocket.Close();
-
-                    if (abPassiveMode == true)
+                    else
                     {
-                        aoClientSocket.Blocking = lbBlockingState;
+                        aiError = TIME_OUT_FOR_PASSIVE_CONNECTION;
                     }
                 }
                 catch
                 {
                     lbRetour = false;
                 }
+            }
+
+            if (abPassiveMode == true)
+            {
+                aoClientDataListener.Stop();
+            }
+            else
+            {
+                aoClientSocket.Blocking = lbBlockingState;
             }
 
             return lbRetour;
@@ -2336,6 +2347,10 @@ namespace ConsoleApplication1
             {
                 SendAnswer(aoClientSocket, String.Format("553 '{0}': directory already exists.", asFileName), ref aiTimeOutUser);
             }
+            else if (aiError == TIME_OUT_FOR_PASSIVE_CONNECTION)
+            {
+                SendAnswer(aoClientSocket, "425 Time out for passive connection.", ref aiTimeOutUser);
+            }
         }
 
         /*
@@ -2367,8 +2382,6 @@ namespace ConsoleApplication1
         {
             /* return value */
             bool lbRetour = false;
-            /* Rcp client for passive mode */
-            TcpClient loClient;
             /* buffer */
             Byte[] laMyBytes = new Byte[aiBlockSize];
             /* Client socket */
@@ -2396,102 +2409,112 @@ namespace ConsoleApplication1
             {
                 if (abPassiveMode == true)
                 {
-                    loClient = aoClientDataListener.AcceptTcpClient();
-                    loMySocket = loClient.Client;
+                    loMySocket = GetPassiveConnection(aoClientDataListener, ref aiTimeOutUser);
                 }
                 else
                 {
                     loMySocket = aoClientSocket;
                 }
 
-                loMySocket.Blocking = false ;
-
-                /* If resume */
-                if (alStartIndex > 0)
+                if (loMySocket != null)
                 {
-                    aoInFileReadBinary.Seek(alStartIndex, SeekOrigin.Begin);
-                }
+                    loMySocket.Blocking = false;
 
-                do
-                {
-                    liNbBytesRead = aoInFileReadBinary.Read(laMyBytes, 0, laMyBytes.Length);
-
-                    if (liNbBytesRead > 0)
+                    /* If resume */
+                    if (alStartIndex > 0)
                     {
-                        liIndex = 0 ;
-                        liSize = liNbBytesRead ;
+                        aoInFileReadBinary.Seek(alStartIndex, SeekOrigin.Begin);
+                    }
 
-                        do
+                    do
+                    {
+                        liNbBytesRead = aoInFileReadBinary.Read(laMyBytes, 0, laMyBytes.Length);
+
+                        if (liNbBytesRead > 0)
                         {
-                            liNbBytes = loMySocket.Send(laMyBytes, liIndex, liSize, SocketFlags.None, out loErrorSocket);
+                            liIndex = 0 ;
+                            liSize = liNbBytesRead ;
 
-                            if (liNbBytes == 0)
+                            do
                             {
-                                if (loErrorSocket != System.Net.Sockets.SocketError.WouldBlock)
+                                liNbBytes = loMySocket.Send(laMyBytes, liIndex, liSize, SocketFlags.None, out loErrorSocket);
+
+                                if (liNbBytes == 0)
                                 {
-                                    /* Connection close */
-                                    aiError = CONNECTION_CLOSE_BY_CLIENT;
-                                    lbInternalError = true;
-                                    break;
+                                    if (loErrorSocket != System.Net.Sockets.SocketError.WouldBlock)
+                                    {
+                                        /* Connection close */
+                                        aiError = CONNECTION_CLOSE_BY_CLIENT;
+                                        lbInternalError = true;
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        /* Why ??? */
+                                        Thread.Sleep(WAITING_TIME);
+                                        aiTimeOutUser--;
+
+                                        if (aiTimeOutUser == 0)
+                                        {
+                                            lbRetour = false;
+                                            break;
+                                        }
+                                    }
                                 }
                                 else
                                 {
-                                    /* Why ??? */
-                                    Thread.Sleep(WAITING_TIME);
-                                    aiTimeOutUser--;
-
-                                    if (aiTimeOutUser == 0)
-                                    {
-                                        lbRetour = false;
-                                        break;
-                                    }
+                                    lbRetour = true;
+                                    aiTimeOutUser = piTimeOut;
                                 }
-                            }
-                            else
-                            {
-                                lbRetour = true;
-                                aiTimeOutUser = piTimeOut;
-                            }
 
-                            if (pbCancel == true)
-                            {
-                                break;
-                            }
+                                if (pbCancel == true)
+                                {
+                                    break;
+                                }
 
-                            liIndex += liNbBytes;
-                            liSize = laMyBytes.Length - liIndex;
+                                liIndex += liNbBytes;
+                                liSize = laMyBytes.Length - liIndex;
+                            }
+                            while (liSize > 0);
                         }
-                        while (liSize > 0);
+
+                        Thread.Sleep(aiWaitingTime);
+
+                        if ((aoBackgroundWorker.CancellationPending == true) || (pbCancel == true))
+                        {
+                            break;
+                        }
                     }
+                    while ((liNbBytesRead == laMyBytes.Length) && (lbInternalError == false)); 
 
-                    Thread.Sleep(aiWaitingTime);
-
-                    if (aoBackgroundWorker.CancellationPending == true)
+                    if (pbCancel == true)
                     {
-                        break;
+                        aiError = CONNECTION_CLOSE_SERVER_SHUTDOWN;
                     }
-                }
-                while ((liNbBytesRead == laMyBytes.Length) && (lbInternalError == false)); 
+                    else
+                    {
+                        lbRetour = true;
+                    }
 
-                if (pbCancel == true)
-                {
-                    aiError = CONNECTION_CLOSE_SERVER_SHUTDOWN;
+                    loMySocket.Close();
                 }
                 else
                 {
-                    lbRetour = true;
+                    aiError = TIME_OUT_FOR_PASSIVE_CONNECTION;
                 }
-
-                loMySocket.Close();
             }
             catch
             {
                 aiError = CANT_OPEN_DATA_CONNECTION;
             }
 
-            if (abPassiveMode == true)
+            if (abPassiveMode == false)
             {
                 aoClientSocket.Blocking = lbBlockingState;
+            }
+            else
+            {
+                aoClientDataListener.Stop();
             }
 
             return lbRetour;
@@ -2526,8 +2549,6 @@ namespace ConsoleApplication1
         {
             /* Return value */
             bool lbRetour = false;
-            /* Tcp client for passive mode */
-            TcpClient loClient;
             /* buffer */
             Byte[] laMyBytes  ;
             /* Client socket */
@@ -2553,93 +2574,98 @@ namespace ConsoleApplication1
             {
                 if (abPassiveMode == true)
                 {
-                    loClient = aoClientDataListener.AcceptTcpClient();
-                    loMySocket = loClient.Client;
+                    loMySocket = GetPassiveConnection(aoClientDataListener, ref aiTimeOutUser);
                 }
                 else
                 {
                     loMySocket = aoClientSocket;
                 }
 
-                loMySocket.Blocking = false ;
-
-                do
+                if (loMySocket != null)
                 {
-                    lsLine = aoInFileReadText.ReadLine() + EOL;
-
-                    laMyBytes = poWindowsEncoding.GetBytes(lsLine);
-
-                    liIndex = 0;
-                    liSize = laMyBytes.Length;
+                    loMySocket.Blocking = false;
 
                     do
                     {
-                        liNbBytes = loMySocket.Send(laMyBytes, liIndex, liSize, SocketFlags.None, out loErrorSocket);
+                        lsLine = aoInFileReadText.ReadLine() + EOL;
 
-                        if (liNbBytes == 0)
+                        laMyBytes = poWindowsEncoding.GetBytes(lsLine);
+
+                        liIndex = 0;
+                        liSize = laMyBytes.Length;
+
+                        do
                         {
-                            if (loErrorSocket != System.Net.Sockets.SocketError.WouldBlock)
+                            liNbBytes = loMySocket.Send(laMyBytes, liIndex, liSize, SocketFlags.None, out loErrorSocket);
+
+                            if (liNbBytes == 0)
                             {
-                                /* Connection close */
-                                aiError = CONNECTION_CLOSE_BY_CLIENT;
-                                break;
+                                if (loErrorSocket != System.Net.Sockets.SocketError.WouldBlock)
+                                {
+                                    /* Connection close */
+                                    aiError = CONNECTION_CLOSE_BY_CLIENT;
+                                    break;
+                                }
+                                else
+                                {
+                                    /* Why ??? */
+                                    Thread.Sleep(WAITING_TIME);
+                                    aiTimeOutUser--;
+
+                                    if (aiTimeOutUser == 0)
+                                    {
+                                        break;
+                                    }
+                                }
                             }
                             else
                             {
-                                /* Why ??? */
-                                Thread.Sleep(WAITING_TIME);
-                                aiTimeOutUser--;
+                                lbRetour = true;
+                                aiTimeOutUser = piTimeOut;
+                            }
 
-                                if (aiTimeOutUser == 0)
-                                {
-                                    break;
-                                }
+                            liIndex += liNbBytes;
+                            liSize = laMyBytes.Length - liIndex;
+
+                            if ((aoBackgroundWorker.CancellationPending == true) || (pbCancel == true))
+                            {
+                                break;
                             }
                         }
-                        else
-                        {
-                            lbRetour = true;
-                            aiTimeOutUser = piTimeOut;
-                        }
+                        while (liSize > 0);
 
-                        if (pbCancel == true)
-                        {
-                            break;
-                        }
-
-                        liIndex += liNbBytes;
-                        liSize = laMyBytes.Length - liIndex;
-
-                        if (aoBackgroundWorker.CancellationPending == true)
-                        {
-                            break;
-                        }
+                        Thread.Sleep(lsLine.Length * aiWaitingTime / aiBlockSize);
                     }
-                    while (liSize > 0);
+                    while (aoInFileReadText.EndOfStream == false);
 
-                    Thread.Sleep(lsLine.Length * aiWaitingTime / aiBlockSize);
-                }
-                while (aoInFileReadText.EndOfStream == false);
+                    if (pbCancel == true)
+                    {
+                        aiError = CONNECTION_CLOSE_SERVER_SHUTDOWN;
+                    }
+                    else
+                    {
+                        lbRetour = true;
+                    }
 
-                if (pbCancel == true)
-                {
-                    aiError = CONNECTION_CLOSE_SERVER_SHUTDOWN;
+                    loMySocket.Close();
                 }
                 else
                 {
-                    lbRetour = true;
+                    aiError = TIME_OUT_FOR_PASSIVE_CONNECTION;
                 }
-
-                loMySocket.Close();
             }
             catch
             {
                 aiError = CANT_OPEN_DATA_CONNECTION;
             }
 
-            if (abPassiveMode == true)
+            if (abPassiveMode == false)
             {
                 aoClientSocket.Blocking = lbBlockingState;
+            }
+            else
+            {
+                aoClientDataListener.Stop();
             }
 
             return lbRetour;
@@ -2706,8 +2732,6 @@ namespace ConsoleApplication1
         {
             /* Return value */
             bool lbRetour = false;
-            /* Tcp client for passive mode */
-            TcpClient loClient;
             /* buffer */
             Byte[] laMyBytes = new Byte[BLOCK_SIZE];
             /* Client soclet */
@@ -2736,87 +2760,111 @@ namespace ConsoleApplication1
 
                 if (abPassiveMode == true)
                 {
-                    loClient = aoClientDataListener.AcceptTcpClient();
-                    loMySocket = loClient.Client;
+                    loMySocket = GetPassiveConnection(aoClientDataListener, ref aiTimeOutUser);
                 }
                 else
                 {
                     loMySocket = aoClientSocket;
                 }
 
-                loMySocket.Blocking = false;
-
-                do
+                if (loMySocket != null)
                 {
-                    liNbBytes = loMySocket.Receive(laMyBytes, 0, laMyBytes.Length, SocketFlags.None, out loErrorSocket);
+                    loMySocket.Blocking = false;
 
-                    if (liNbBytes == 0)
+                    do
                     {
-                        if (loErrorSocket != System.Net.Sockets.SocketError.WouldBlock)
+                        liNbBytes = loMySocket.Receive(laMyBytes, 0, laMyBytes.Length, SocketFlags.None, out loErrorSocket);
+
+                        if (liNbBytes == 0)
                         {
-                            /* Connection close */
-                            lbRetour = true;
-                            break;
+                            if (loErrorSocket != System.Net.Sockets.SocketError.WouldBlock)
+                            {
+                                /* Connection close */
+                                lbRetour = true;
+                                break;
+                            }
+                            else
+                            {
+                                Thread.Sleep(WAITING_TIME);
+                                aiTimeOutUser--;
+
+                                if (aiTimeOutUser == 0)
+                                {
+                                    break;
+                                }
+                            }
                         }
                         else
                         {
-                            Thread.Sleep(WAITING_TIME);
-                            aiTimeOutUser--;
-
-                            if (aiTimeOutUser == 0)
+                            if (abBinaryMode == false)
                             {
+                                lsLine = poWindowsEncoding.GetString(laMyBytes);
+                                lsLine = lsLine.Replace("\r\n", Environment.NewLine);
+
+                                /* when can split \r\n when read block */
+                                if (lsLine.EndsWith("\r") == true)
+                                {
+                                    lsLine = lsLine.Substring(0, lsLine.Length - 1) + Environment.NewLine;
+                                }
+
+                                if (lsLine.StartsWith("\n") == true)
+                                {
+                                    lsLine = lsLine.Substring(1);
+                                }
+
+                                laMyBytes = poWindowsEncoding.GetBytes(lsLine);
+                            }
+
+                            try
+                            {
+                                aoOutFileWriteBinary.Write(laMyBytes, 0, liNbBytes);
+                            }
+                            catch
+                            {
+                                aiError = NO_ENOUGH_SPACE;
                                 break;
                             }
+
+                            /* Reinit time out */
+                            aiTimeOutUser = piTimeOut;
                         }
+
+                        if ((aoBackgroundWorker.CancellationPending == true) || (pbCancel == true))
+                        {
+                            break;
+                        }
+                    }
+                    while (aiTimeOutUser > 0);
+
+                    if (pbCancel == true)
+                    {
+                        aiError = CONNECTION_CLOSE_SERVER_SHUTDOWN;
                     }
                     else
                     {
-                        if (abBinaryMode == false)
-                        {
-                            lsLine = poWindowsEncoding.GetString(laMyBytes);
-                            lsLine = lsLine.Replace("\r\n", Environment.NewLine);
-
-                            /* when can split \r\n when read block */
-                            if (lsLine.EndsWith("\r") == true)
-                            {
-                                lsLine = lsLine.Substring(0, lsLine.Length - 1) + Environment.NewLine;
-                            }
-
-                            if (lsLine.StartsWith("\n") == true)
-                            {
-                                lsLine = lsLine.Substring(1);
-                            }
-
-                            laMyBytes = poWindowsEncoding.GetBytes(lsLine);
-                        }
-
-                        try
-                        {
-                            aoOutFileWriteBinary.Write(laMyBytes, 0, liNbBytes);
-                        }
-                        catch
-                        {
-                            aiError = NO_ENOUGH_SPACE;
-                            break;
-                        }
-
-                        /* Reinit time out */
-                        aiTimeOutUser = piTimeOut;
+                        lbRetour = true;
                     }
 
-                    if (aoBackgroundWorker.CancellationPending == true)
-                    {
-                        break;
-                    }
+                    loMySocket.Close();
                 }
-                while (aiTimeOutUser > 0);
+                else
+                {
+                    aiError = TIME_OUT_FOR_PASSIVE_CONNECTION;
+                }
             }
             catch
             {
                 aiError = CANT_OPEN_DATA_CONNECTION;
             }
 
-            aoClientSocket.Blocking = lbBlockingState;
+            if (abPassiveMode == false)
+            {
+                aoClientSocket.Blocking = lbBlockingState;
+            }
+            else
+            {
+                aoClientDataListener.Stop();
+            }
 
             return lbRetour;
         }
@@ -3287,7 +3335,10 @@ namespace ConsoleApplication1
 
                             if (SendBinaryFile(loBackgroundWorker, loInFileReadBinary, aoClientDataListener, aoClientDataSocket, abPassiveMode, ref liError, alResumeIndex, aiWaitingTime, aiBlockSize, ref aiTimeOutUser) == true)
                             {
-                                SendAnswer(aoMySocket, MSG_TRANSFERT_COMPLET, ref aiTimeOutUser);
+                                if (loBackgroundWorker.CancellationPending == false)
+                                {
+                                    SendAnswer(aoMySocket, MSG_TRANSFERT_COMPLET, ref aiTimeOutUser);
+                                }
                             }
                             else
                             {
@@ -3302,7 +3353,10 @@ namespace ConsoleApplication1
 
                             if (SendTextFile(loBackgroundWorker, loInFileReadText, aoClientDataListener, aoClientDataSocket, abPassiveMode, ref liError, aiWaitingTime, aiBlockSize, ref aiTimeOutUser) == true)
                             {
-                                SendAnswer(aoMySocket, MSG_TRANSFERT_COMPLET, ref aiTimeOutUser);
+                                if (loBackgroundWorker.CancellationPending == false)
+                                {
+                                    SendAnswer(aoMySocket, MSG_TRANSFERT_COMPLET, ref aiTimeOutUser);
+                                }
                             }
                             else
                             {
@@ -3498,7 +3552,11 @@ namespace ConsoleApplication1
 
                         if (GetFile(loBackgroundWorker, loOutFileWriteBinary, aoClientDataListener, loClientDataSocket, lbPassiveMode, ref liError, llResumeIndex, lbBinaryMode, ref liTimeOutUser) == true)
                         {
-                            SendAnswer(loMySocket, MSG_TRANSFERT_COMPLET, ref liTimeOutUser);
+                            // Only send success full message if no abort
+                            if (loBackgroundWorker.CancellationPending == false)
+                            {
+                                SendAnswer(loMySocket, MSG_TRANSFERT_COMPLET, ref liTimeOutUser);
+                            }
                         }
                         else
                         {
@@ -4090,6 +4148,44 @@ namespace ConsoleApplication1
             {
                 SendAnswer(aoMySocket, ERROR_PERMISSION_DENIED, ref aiTimeOutUser);
             }
+        }
+
+        /*
+         * <summary>Return passive connection or null</summary>
+		 *
+         * <remarks></remarks>
+		 *
+         * <param name="aoClientDataListener">passive connection socket</param>
+		 * <param name="aiTimeOutUser">Time out</param>
+         * 
+         * <returns>void</returns>
+		 *
+         * <history>
+         * - 04/09/2008 : create function
+         * <history>
+         */
+        private Socket GetPassiveConnection(TcpListener aoClientDataListener, ref int aiTimeOutUser)
+        {
+            Socket loMySocket = null;
+            /* Tcp Client for passive transfert */
+            TcpClient loClient;
+            aiTimeOutUser = 5;
+            do
+            {
+                if (aoClientDataListener.Pending())
+                {
+                    loClient = aoClientDataListener.AcceptTcpClient();
+                    loMySocket = loClient.Client;
+                }
+                else
+                {
+                    Thread.Sleep(WAITING_TIME);
+                    aiTimeOutUser--;
+                }
+            }
+            while ((aiTimeOutUser > 0) && (loMySocket == null));
+
+            return loMySocket;
         }
     }   
 }

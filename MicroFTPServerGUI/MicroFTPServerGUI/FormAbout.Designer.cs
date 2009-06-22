@@ -44,7 +44,7 @@ namespace MicroFTPServerGUI
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(271, 13);
             this.label1.TabIndex = 0;
-            this.label1.Text = "MicroFTPServer Graphic User Interface v0.9.1";
+            this.label1.Text = "MicroFTPServer Graphic User Interface v0.9.2";
             // 
             // label2
             // 
@@ -60,10 +60,10 @@ namespace MicroFTPServerGUI
             this.linkLabel1.AutoSize = true;
             this.linkLabel1.Location = new System.Drawing.Point(12, 54);
             this.linkLabel1.Name = "linkLabel1";
-            this.linkLabel1.Size = new System.Drawing.Size(176, 13);
+            this.linkLabel1.Size = new System.Drawing.Size(137, 13);
             this.linkLabel1.TabIndex = 2;
             this.linkLabel1.TabStop = true;
-            this.linkLabel1.Text = "http://php4php.free.fr/leechdotnet/";
+            this.linkLabel1.Text = "http://www.bubulemaster.fr";
             // 
             // textBox1
             // 

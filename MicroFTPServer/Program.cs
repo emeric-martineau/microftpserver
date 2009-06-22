@@ -265,9 +265,9 @@ namespace ConsoleApplication1
             ClassFTPServer loServer;
             bool lbLogFile = false;
 
-            Console.WriteLine("MicroFTPServer v0.6") ;
-            Console.WriteLine("CopyLeft (C) MARTINEAU Emeric (php4php@free.fr)") ;
-            Console.WriteLine("Web site : http://php4php.free.fr/leechdotnet/");
+            Console.WriteLine("MicroFTPServer v0.8") ;
+            Console.WriteLine("CopyLeft (C) MARTINEAU Emeric (bubulemaster@yahoo.fr)") ;
+            Console.WriteLine("Web site : http://www.bubulemaster.fr");
             Console.WriteLine("License : GNU GPL v3");
 
             lsRootFile = System.IO.Directory.GetCurrentDirectory();

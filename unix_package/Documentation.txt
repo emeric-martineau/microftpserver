@@ -1,0 +1,119 @@
+MicroFTP Server
+==============
+
+I   - Introduction
+II  - Server parameter
+III - General configuration
+IV  - Users configuration
+V   - Add service (under windows)
+VI  - Delete service (under windows)
+VII - Copyright
+
+I - Introduction
+----------------
+
+MicroFTP Server is powerfull FTP Server based on .Net technologie (work under
+Mono).
+It was programmed in C# with Visual Studio 2008 Express.
+MicroFTP Server can have unlimited user and client. You can all config (numbrer
+maximum of client, port, ip adresse...).
+
+II - Server parameter
+---------------------
+
+MicroFTP Server can have one argument :
+ -root <config_directory>
+where config directory is directory contain files :
+ * general.ini
+ * users\*.*
+
+ -logile <log_file_name>
+  if specified, output redirect in log file,
+    you can use constante below
+    %Y : year
+    %M : month
+    %d : day
+    %H : hour
+    %m : minute
+    %s : seconde
+ 
+ -logsize
+  maximum log size. If specified, add -XX at end of file name, where XX is number of file
+    0 : no size
+    1024 : 1024 byte
+    1024k : 1024 kilo-byte
+    1024M : 1024 mega-byte
+    1024G : 1024 giga-byte
+    1024T : 1024 tetra-byte
+
+ -logerase 
+  if set, file log reset when size is log size.
+ 
+III - General configuration
+---------------------------
+
+General configuration is in file : general.ini
+ * Port : specify port to listen
+ * IpAddress : specify IP address or host name to listen
+ * WelcomeMessage : it was welcome message show when new client connect.
+                    To add carriage return, enter string "\n"
+ * MaxSessionPerUser : maximum connection per user. 0 to unlimited
+ * MaxClient : maximum client accept
+ * FullLog : full log. yes = enabled, no = disabled
+ * TimeOut : time out for no activity after connection automatically closed
+ * PassivePort : range of passive port e.g. 1024-65535
+ * AllowIPAddress : IP address allow to connect
+                    ? -> replace one caractere
+					* -> replace a number.
+					IP address separe IP by comma (,)
+					Empty to disable
+ * DenyIPAddress : IP address not allow to connect
+ * ByteRateUser : Default byte rate per user. 0 to disabled
+
+IV - Users configuration
+------------------------
+
+To add user, simply copy emeric.ini to name_of_user.ini. After edit it.
+ * Password : containt password in text plain except if passwordProtected
+              is set to yes. If passwordProtected is set, password containt
+			  MD5 of password. To obtain MD5 run MD5Crypter.exe
+ * PasswordProtected : yes -> password is crypted, no -> password in text plain
+ * Root : root directory of user. User cannot goto parent directory of root.
+ * Download : yes -> user can download file
+ * Upload : yes -> user can upload file on server
+ * Rename : yes -> user can rename file or directory
+ * Delete : yes -> user can delete file
+ * MakeDirectory : yes -> user can create directory
+ * DeleteDirectory : yes -> user can delete directory
+ * ModifyTime : yes -> user can modify time of file or directory
+ * Disabled : yes -> user is disabled
+ * ByteRate : 0 use default byte rate configuration in general.ini. -1 disabled
+ 
+If parametter is omitted, this parametter set to no.
+
+V - Add service (under windows)
+-------------------------------
+
+To install MircoFTPServer in service, copy instsrv.exe and srvany.exe in c:\windows\system32 (where
+windows is directory of install of Windows).
+Run this command :
+ instsrv.exe MicroFTPServer %SystemRoot%\System32\srvany.exe
+
+In registry under HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Services\MicroFTPServer
+create a sub-key : Parameters
+create 3 string key:
+AppParameters = "MicroFTPServer.exe"
+AppDirectory = "c:\Program Files\MicroFTPServer" where is your path to MicroFTPServer.exe
+AppParameters = ""
+
+If your configuration files is not in same directory of MicroFTPServer.exe, set AppParameters to
+"-root c:\...\...\" 
+
+VI - Delete service (under windows)
+-----------------------------------
+sc delete MicroFTPServer
+
+VII - Copyright
+---------------
+MicroFTPServer is release under GNU GPL v3. See license.gpl-3.0.txt for more
+details.

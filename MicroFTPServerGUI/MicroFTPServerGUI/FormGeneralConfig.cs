@@ -104,6 +104,15 @@ namespace MicroFTPServerGUI
             }
 
             numericUpDownUserByteRate.Value = value;
+
+            tmp = Ini.GetValue("main", "BufferSize");
+
+            if (int.TryParse(tmp, out value) == false)
+            {
+                value = 2;
+            }
+
+            numericUpDownBufferSize.Value = value;
         }
 
         private void buttonOK_Click(object sender, EventArgs e)
@@ -113,9 +122,10 @@ namespace MicroFTPServerGUI
                 StreamWriter sw = new StreamWriter(CONFIG_FILE);
 
                 sw.WriteLine("[main]");
+                sw.WriteLine("; Port");
                 sw.WriteLine("Port=" + numericUpDownPort.Value);
-                sw.WriteLine("; IP Address or host name");
                 sw.WriteLine("");
+                sw.WriteLine("; IP Address or host name");
                 sw.WriteLine("IpAddress=" + textBoxIPAddress.Text);
                 sw.WriteLine("");
                 sw.WriteLine("WelcomeMessage=\"" + textBoxWelcomeMessage.Text.Replace(Environment.NewLine, "\\n") + "\"");
@@ -148,6 +158,9 @@ namespace MicroFTPServerGUI
                 sw.WriteLine("") ;
                 sw.WriteLine("; Default byte rate per user. 0 to disabled");
                 sw.WriteLine("ByteRateUser=" + numericUpDownUserByteRate.Value);
+                sw.WriteLine("");
+                sw.WriteLine("; Defaut buffer size for send/receive data");
+                sw.WriteLine("BufferSize=" + numericUpDownBufferSize.Value);
 
                 sw.Close();
             }
@@ -173,6 +186,31 @@ namespace MicroFTPServerGUI
                     e.KeyChar = (char)0x00;
                 }
             }
+        }
+
+        private void groupBox2_Enter(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBoxBufferSize_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label12_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void groupBox1_Enter(object sender, EventArgs e)
+        {
+
+        }
+
+        private void buttonCancel_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

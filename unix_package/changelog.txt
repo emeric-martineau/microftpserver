@@ -1,0 +1,59 @@
+0.7.1 (22/06/2009) :
+  Server :
+    - support ABOR command,
+    - better passive mode support,
+  Server/GUI :
+    - support default buffer size,
+
+0.7 : (01/10/2008)
+  Server :
+    - add DELE, MKD, XMKD, RMD, XRMD command,
+    - multi-thread to send/get a file,
+
+0.6 : (23/09/2008)
+  Server/GUI
+    - byte rate configuration to server and per user,
+    - add possibility of log file with maximum size,
+  
+0.5 : (14/09/2008)
+  Server
+    - check if home directory exists before login,
+
+0.4 : (no public release)
+  Server/GUI
+    - add sub dir right,
+    - add goodbye message,
+
+0.3 : (07/09/2008)
+  GUI
+    - add DenyPriority parameter to can be deny all IP address except allowed IP,
+
+  Server
+    - correct bug in send file,
+    - correct wrong default parameter in config file,
+    - better code writting,
+    - now if passive port is used, go to next until found free port,
+    - close active port connection when client close,
+    - add DenyPriority to deny all address except allowed IP,
+    - correct possible Deny Of Service,
+    - add STOU command,
+
+0.2 : (14/07/2008)
+  GUI :
+    - message when you close and server is running,
+
+  Server
+    - using String.Concat and StringBuilder,
+    - code cleaning,
+    - add better header of function,
+    - rename all variable name to better name,
+    - add RNTO and RNFR command,
+    - add FEAT command
+        - MTDM,
+        - SIZE,
+        - UTF8,
+        - CLNT,
+        - MFMT,
+
+0.1 : (29/08/2009)
+  Initial release

@@ -57,11 +57,14 @@ namespace MicroFTPServerGUI
             this.label10 = new System.Windows.Forms.Label();
             this.label11 = new System.Windows.Forms.Label();
             this.numericUpDownUserByteRate = new System.Windows.Forms.NumericUpDown();
+            this.label12 = new System.Windows.Forms.Label();
+            this.numericUpDownBufferSize = new System.Windows.Forms.NumericUpDown();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownPort)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownUser)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownClient)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownTimeOut)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownUserByteRate)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownBufferSize)).BeginInit();
             this.SuspendLayout();
             // 
             // Port
@@ -183,6 +186,11 @@ namespace MicroFTPServerGUI
             // numericUpDownTimeOut
             // 
             this.numericUpDownTimeOut.Location = new System.Drawing.Point(297, 126);
+            this.numericUpDownTimeOut.Maximum = new decimal(new int[] {
+            268435455,
+            1042612833,
+            542101086,
+            0});
             this.numericUpDownTimeOut.Name = "numericUpDownTimeOut";
             this.numericUpDownTimeOut.Size = new System.Drawing.Size(100, 20);
             this.numericUpDownTimeOut.TabIndex = 12;
@@ -239,7 +247,7 @@ namespace MicroFTPServerGUI
             // buttonOK
             // 
             this.buttonOK.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.buttonOK.Location = new System.Drawing.Point(15, 353);
+            this.buttonOK.Location = new System.Drawing.Point(15, 391);
             this.buttonOK.Name = "buttonOK";
             this.buttonOK.Size = new System.Drawing.Size(75, 23);
             this.buttonOK.TabIndex = 19;
@@ -250,12 +258,13 @@ namespace MicroFTPServerGUI
             // buttonCancel
             // 
             this.buttonCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.buttonCancel.Location = new System.Drawing.Point(461, 353);
+            this.buttonCancel.Location = new System.Drawing.Point(461, 391);
             this.buttonCancel.Name = "buttonCancel";
             this.buttonCancel.Size = new System.Drawing.Size(75, 23);
             this.buttonCancel.TabIndex = 20;
             this.buttonCancel.Text = "Cancel";
             this.buttonCancel.UseVisualStyleBackColor = true;
+            this.buttonCancel.Click += new System.EventHandler(this.buttonCancel_Click);
             // 
             // checkBoxDenyPriority
             // 
@@ -271,9 +280,10 @@ namespace MicroFTPServerGUI
             // 
             this.groupBox1.Location = new System.Drawing.Point(286, 9);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(2, 330);
+            this.groupBox1.Size = new System.Drawing.Size(2, 370);
             this.groupBox1.TabIndex = 22;
             this.groupBox1.TabStop = false;
+            this.groupBox1.Enter += new System.EventHandler(this.groupBox1_Enter);
             // 
             // label9
             // 
@@ -286,11 +296,12 @@ namespace MicroFTPServerGUI
             // 
             // groupBox2
             // 
-            this.groupBox2.Location = new System.Drawing.Point(15, 345);
+            this.groupBox2.Location = new System.Drawing.Point(15, 383);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Size = new System.Drawing.Size(521, 2);
             this.groupBox2.TabIndex = 24;
             this.groupBox2.TabStop = false;
+            this.groupBox2.Enter += new System.EventHandler(this.groupBox2_Enter);
             // 
             // textBoxGoodbyeMessage
             // 
@@ -331,11 +342,35 @@ namespace MicroFTPServerGUI
             this.numericUpDownUserByteRate.Size = new System.Drawing.Size(100, 20);
             this.numericUpDownUserByteRate.TabIndex = 28;
             // 
+            // label12
+            // 
+            this.label12.AutoSize = true;
+            this.label12.Location = new System.Drawing.Point(12, 342);
+            this.label12.Name = "label12";
+            this.label12.Size = new System.Drawing.Size(62, 13);
+            this.label12.TabIndex = 29;
+            this.label12.Text = "Buffer size :";
+            this.label12.Click += new System.EventHandler(this.label12_Click);
+            // 
+            // numericUpDownBufferSize
+            // 
+            this.numericUpDownBufferSize.Location = new System.Drawing.Point(15, 357);
+            this.numericUpDownBufferSize.Maximum = new decimal(new int[] {
+            268435455,
+            1042612833,
+            542101086,
+            0});
+            this.numericUpDownBufferSize.Name = "numericUpDownBufferSize";
+            this.numericUpDownBufferSize.Size = new System.Drawing.Size(100, 20);
+            this.numericUpDownBufferSize.TabIndex = 30;
+            // 
             // FormGeneralConfig
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(548, 386);
+            this.ClientSize = new System.Drawing.Size(548, 426);
+            this.Controls.Add(this.numericUpDownBufferSize);
+            this.Controls.Add(this.label12);
             this.Controls.Add(this.numericUpDownUserByteRate);
             this.Controls.Add(this.label11);
             this.Controls.Add(this.textBoxGoodbyeMessage);
@@ -377,6 +412,7 @@ namespace MicroFTPServerGUI
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownClient)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownTimeOut)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownUserByteRate)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownBufferSize)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -413,5 +449,7 @@ namespace MicroFTPServerGUI
         private System.Windows.Forms.Label label10;
         private System.Windows.Forms.Label label11;
         private System.Windows.Forms.NumericUpDown numericUpDownUserByteRate;
+        private System.Windows.Forms.Label label12;
+        private System.Windows.Forms.NumericUpDown numericUpDownBufferSize;
     }
 }
